@@ -14,6 +14,12 @@ test {
   session.finish()
   assert_eq(cassette.source(), source)
   assert_true(cassette.compare(cassette).is_empty())
+  let branch = session.fork()
+  let value = branch.transaction(s => {
+    s.finish()
+    42
+  })
+  assert_eq(value, 42)
 }
 ```
 

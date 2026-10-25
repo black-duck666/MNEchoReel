@@ -117,10 +117,13 @@ pub struct Session {
   // private fields
 }
 pub fn Session::finish(Self) -> Unit raise ReplayError
+pub fn Session::fork(Self) -> Self
 pub fn Session::remaining(Self) -> Int32
 pub fn Session::reset(Self) -> Unit
 pub fn Session::take(Self, Request) -> Response raise ReplayError
 pub fn Session::take_checked(Self, Request, Expectation) -> Response raise ReplayError
+pub fn[T] Session::transaction(Self, (Self) -> T raise) -> T raise
+pub async fn[T] Session::transaction_async(Self, async (Self) -> T) -> T
 
 // Type aliases
 

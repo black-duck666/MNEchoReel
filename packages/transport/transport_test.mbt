@@ -87,3 +87,56 @@ async test "streaming request is refused before reading or consuming" {
   ignore(transport.send(@http.Request::get("https://example.invalid/a")))
   session.finish()
 }
+
+///|
+async test "SDK multi-call transactions restore after failure and retain success" {
+  let session = cassette().session()
+  let transport = @transport.ReplayTransport::new(session)
+  try
+    session.transaction_async(async fn(_s) {
+      ignore(transport.send(@http.Request::get("https://example.invalid/a")))
+      ignore(transport.send(@http.Request::get("https://example.invalid/a")))
+    })
+  catch {
+    @http.HttpError::Protocol(message) =>
+      assert_true(message.contains("no_match"))
+    _ => fail("expected original transport error")
+  } noraise {
+    _ => fail("expected failed workflow")
+  }
+  assert_eq(session.remaining(), 1)
+  let value = session.transaction_async(async fn(s) {
+    let response = transport.send(
+      @http.Request::get("https://example.invalid/a"),
+    )
+    s.finish()
+    response.text()
+  })
+  assert_eq(value, "ok")
+  session.finish()
+}
+
+///|
+async test "cancelled SDK workflow restores consumption after structured cleanup" {
+  let session = cassette().session()
+  let started : @async.Queue[Unit] = @async.Queue(kind=Unbounded)
+  let blocked : @async.Queue[Unit] = @async.Queue(kind=Unbounded)
+  @async.with_task_group(async fn(group) {
+    group.spawn_bg(async fn() {
+      session.transaction_async(async fn(s) {
+        let transport = @transport.ReplayTransport::new(s)
+        ignore(transport.send(@http.Request::get("https://example.invalid/a")))
+        started.put(())
+        blocked.get()
+      })
+    })
+    started.get()
+    assert_eq(session.remaining(), 0)
+    group.return_immediately(())
+  })
+  assert_eq(session.remaining(), 1)
+  started.close()
+  blocked.close()
+  ignore(session.take(@replay.Request::new("GET", "https://example.invalid/a")))
+  session.finish()
+}

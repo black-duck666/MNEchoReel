@@ -69,6 +69,22 @@ SDK 接入只需将 `@transport.ReplayTransport::new(session)` 作为
 失败通过 `ReplayError(Diagnostic)` 返回 `code/path/message`，不消费记录，
 可修正请求后继续。诊断不回显请求值、正文、令牌或 URL。
 
+### 多调用试验与分支
+
+```sh
+moon run packages/branch_demo -- examples/repository.har
+```
+
+`session.fork()` 复制当前消费位置和匹配模式，子分支与父分支的 take/reset 不互相
+影响。适用于同一夹具上验证不同业务路径。`session.transaction(s => { ... })`
+将多次消费作为一组：回调成功保留状态并返回结果，抛错则恢复进入回调前的全部消费
+位置，并原样传播错误。可嵌套；回调中的 reset 也包含在回滚范围内。
+
+SDK 异步流程使用 `transaction_async(async fn(s) { ... })`。通过 `errdefer`
+恢复状态，测试覆盖业务异常、transport 失败和取消后的清理完成。事务期间必须
+独占该 session；并行测试使用 fork。它不撤销外部 I/O、响应对象或其他副作用，
+不处理进程 abort/崩溃，也不承诺共享 session 的并发同步。
+
 ## 首版接受的记录
 
 - HAR 1.2，自包含、已净化、完整嵌入正文的有限 HTTP(S) 交互。
@@ -163,7 +179,7 @@ Moon 当前跳过 Wasm-GC 的 async tests，因此该目标验证核心与同步
 当前已实现：完整 HAR 导入、严格请求匹配、独立消费状态、有限正文 transport、
 可执行诊断、状态断言 CLI、真实数据 SDK 示例。
 
-已补充响应断言、夹具行为审查和带完整修改清单的 decoded-body 头适配。
+已补充响应断言、夹具行为审查、带完整修改清单的 decoded-body 头适配、分支与多调用回滚。
 后续按能力推进：更多可以完整还原的请求正文 profile。录制代理、自动脱敏、OpenAPI 校验和
 通用 HTTP 客户端不在边界内。详细场景见 [contract](notes/contract.md)，生态定位与
 复用来源见 [sources](notes/sources.md)。

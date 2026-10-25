@@ -20,9 +20,9 @@ type checking, on Linux, macOS and Windows.
 
 | Local runtime | Unit tests | End-to-end result |
 | --- | --- | --- |
-| Wasm | 19 passed | Real HAR CLI, SDK assertion and five rejection plans passed |
-| Wasm-GC | 16 passed | Real HAR CLI and five rejection plans passed; three async tests skipped by Moon |
-| JavaScript / Node.js | 19 passed | Real HAR CLI, SDK assertion and five rejection plans passed |
+| Wasm | 34 passed | Identity/gzip HAR CLI, review, branch demo, SDK and rejection plans passed |
+| Wasm-GC | 29 passed | Identity/gzip HAR CLI, review, branch demo and rejection plans passed; five async tests skipped by Moon |
+| JavaScript / Node.js | 34 passed | Identity/gzip HAR CLI, review, branch demo, SDK and rejection plans passed |
 
 `moon fmt --check`, explicit formatting checks for both `.mbtx` tools, and
 `moon info --target all` also passed. Generated interfaces are committed.
@@ -40,8 +40,24 @@ jobs; no streaming scheduling semantics are claimed.
 
 Reproducible verification commands are in the root README. `tools/verify.mbtx`
 runs strict checks, unit tests, the real capture CLI, the SDK example where
-supported, and five negative CLI plans. It verifies nonzero exit codes and
+supported, and negative CLI plans. It verifies nonzero exit codes and
 diagnostic categories. Tests include byte/base64 roundtrips over lengths 0–256,
 all truncated prefixes of a valid HAR, duplicate keys, invalid Unicode escapes,
 resource boundaries, repeated headers, source preservation, deterministic
 sessions, ambiguous requests, recovery, reset and state isolation.
+
+## Subsequent capabilities
+
+The same CI matrix now executes response expectations, bounded LCS fixture
+review, audited decoded-content adaptation, and fork/transaction workflows.
+The gzip fixture is a second real capture (1426 encoded / 6228 decoded bytes),
+with provenance in `examples/provenance.md`. Negative plans verify failures as
+well as successful playback. JSON report tests check nullable scalar fields,
+deterministic output and omission of response secrets.
+
+Transaction tests cover original-error propagation, successful return values,
+all consumption prefixes, independent resets, nested rollback and async SDK
+failures. A queue-synchronized cancellation test waits for actual consumption,
+cancels the structured child workflow, then checks restored state after cleanup;
+it uses no timing assumptions. Wasm-GC skips async tests; its synchronous branch
+demo and transaction tests still execute.
