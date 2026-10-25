@@ -1,0 +1,23 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "black-duck666/mnechoreel/plan"
+
+import {
+  "black-duck666/mnechoreel/replay",
+}
+
+// Values
+pub fn parse_plan(String, max_input_units? : Int32, max_steps? : Int32) -> Plan raise @replay.ReplayError
+
+// Errors
+
+// Types and methods
+pub struct Plan {
+  // private fields
+}
+pub fn Plan::length(Self) -> Int32
+pub fn Plan::new(Array[(@replay.Request, @replay.Expectation)]) -> Self
+pub fn Plan::run(Self, @replay.Session, require_complete? : Bool) -> Array[@replay.Response] raise
+
+// Type aliases
+
+// Traits

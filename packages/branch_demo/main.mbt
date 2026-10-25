@@ -46,4 +46,14 @@ fn main raise {
   println(
     "isolated branch and failed trial preserved parent; committed result: \{name}",
   )
+  let scenario = @plan.Plan::new([
+    (
+      request,
+      @replay.Expectation::new(json=[("/full_name", "\"moonbitlang/core\"")]),
+    ),
+  ])
+  for _ in 0..<2 {
+    assert_eq(scenario.run(cassette.session()).length(), 1)
+  }
+  println("one reusable plan verified two independent sessions")
 }

@@ -20,9 +20,9 @@ type checking, on Linux, macOS and Windows.
 
 | Local runtime | Unit tests | End-to-end result |
 | --- | --- | --- |
-| Wasm | 38 passed | Identity/gzip HAR CLI, review, branch demo, SDK and rejection plans passed |
-| Wasm-GC | 33 passed | Identity/gzip HAR CLI, review, branch demo and rejection plans passed; five async tests skipped by Moon |
-| JavaScript / Node.js | 38 passed | Identity/gzip HAR CLI, review, branch demo, SDK and rejection plans passed |
+| Wasm | 42 passed | Identity/gzip HAR CLI, review, branch demo, SDK and rejection plans passed |
+| Wasm-GC | 37 passed | Identity/gzip HAR CLI, review, branch demo and rejection plans passed; five async tests skipped by Moon |
+| JavaScript / Node.js | 42 passed | Identity/gzip HAR CLI, review, branch demo, SDK and rejection plans passed |
 
 `moon fmt --check`, explicit formatting checks for both `.mbtx` tools, and
 `moon info --target all` also passed. Generated interfaces are committed.
@@ -67,3 +67,9 @@ target. Focused tests cover escaped/empty pointers, absent versus null,
 ordered arrays, reordered object members, IDs beyond Double precision,
 numeric spelling, malformed UTF-8/JSON, duplicate keys, depth/count/text limits,
 nonconsumption after failure and recovery through raw replay.
+
+Reusable plans execute through the same CLI path. Tests verify whole-plan and
+completion rollback, partial composition, repeated independent execution,
+caller-array isolation, supplied matching modes, every truncated manifest prefix,
+late invalid steps and parser limits. E2E checks exact CLI exit codes and ensures
+failed plans emit no success lines from rolled-back earlier steps.

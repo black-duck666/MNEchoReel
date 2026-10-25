@@ -147,6 +147,21 @@ HEAD/204/304 的编码适配、范围/摘要/签名元数据、缺失正文和�
 退出码：0 成功，1 回放或响应断言诊断，2 清单/输入错误。诊断输出到 stdout。
 CLI 默认不按头匹配；需要自定义头身份时使用库的 `match_headers`。
 
+### 将清单嵌入自己的测试
+
+导入 `black-duck666/mnechoreel/plan`，调用 `parse_plan(json_text)`；也可用
+`Plan::new([(request, expectation), ...])` 从已构造的请求与断言建立计划。
+`plan.run(session)` 返回按步骤排列的响应数组，默认在全部步骤结束后检查 `finish()`。
+任一步匹配/断言或完成检查失败，整个计划的消费都会回滚到进入前状态；成功才提交。
+同一计划可复用于多个独立 session，匹配模式与选定请求头由传入的 session 决定。
+需要组合部分计划时显式使用 `require_complete=false`，最后自行 `finish()`。
+失败诊断包含 `$plan[步骤]`，不回显请求数据。它只回滚 session 消费，不撤销外部副作用。
+
+解析默认限制输入 4,194,304 个 UTF-16 units、10,000 步、JSON 深度 64；前两项通过
+`max_input_units` / `max_steps` 调整。先验证整个清单，拒绝未知字段、重复 JSON key 和
+畸形断言；构造器复制调用方步骤数组。CLI 复用同一 API，只在整组成功提交后输出成功行。
+`packages/branch_demo` 用真实夹具演示同一库计划在两个独立 session 上执行。
+
 ## 验证与布局
 
 ### 审查夹具更新

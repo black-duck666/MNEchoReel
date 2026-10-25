@@ -43,8 +43,15 @@ async fn main {
     @fs.write_string_to_file(temporary, plan)
     let output = @shell.Cmd("moon", ["run", "packages/check", "--target", target, "--", "examples/repository.har", temporary]).output()
     assert_true(output.exit_code() != 0)
+    assert_eq(output.exit_code(), if expected == "manifest_error" { 2 } else { 1 })
     assert_true((output.stdout() + output.stderr()).contains(expected))
   }
+  @fs.remove_file(temporary)
+  @fs.write_string_to_file(temporary, "[{\"method\":\"GET\",\"url\":\"https://api.github.com/repos/moonbitlang/core\"},{\"method\":\"GET\",\"url\":\"https://wrong.invalid/\"}]")
+  let failed_plan = @shell.Cmd("moon", ["run", "packages/check", "--target", target, "--", "examples/repository.har", temporary]).output()
+  assert_eq(failed_plan.exit_code(), 1)
+  assert_true(failed_plan.stdout().contains("$plan[1]"))
+  assert_false(failed_plan.stdout().contains("0: status="))
   @fs.remove_file(temporary)
   let revised = @json.parse(@fs.read_file_to_string("examples/repository.har"), preserve_number_repr=true)
   guard revised is { "log": { "entries": Array(entries), .. }, .. } else { abort("fixture entries missing") }

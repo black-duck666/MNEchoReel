@@ -1,0 +1,10 @@
+import {
+  "black-duck666/mnechoreel/replay",
+  "moonbitlang/core/json",
+  "moonbitlang/core/encoding/utf8",
+  "moonbitlang/core/encoding/base64",
+}
+
+import {
+  "black-duck666/mnechoreel/replay",
+} for "test"
