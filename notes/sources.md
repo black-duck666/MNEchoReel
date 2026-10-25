@@ -39,6 +39,9 @@ Mooncakes 文档索引可能落后；实现固定版本并以实际下载接口�
   作为 CI action 引用，各自由上游许可证约束，没有复制进本项目。
 - [HAR 1.2 历史草案](https://webperfwg.org/specs/HAR/Overview.html)：格式语义参考；
   文档已停止维护，不称其为现行 W3C 标准。
+- [RFC 6901](https://www.rfc-editor.org/rfc/rfc6901.html)：JSON 字符串 pointer 的语法与求值参考。
+  本项目只实现响应字段选择所需形式；没有复制 RFC 示例、代码或上游测试。
+  数字采用本项目明确规定的 token 精确比较，不宣称实现通用 JSON Schema/JSON Patch。
 - 真实 API 数据、获取命令、许可不确定性与包裹 HAR 的来源见
   [examples/provenance.md](../examples/provenance.md)。单元测试边界数据和项目实现
   在本仓库新编写，按根目录 MIT 许可发布。

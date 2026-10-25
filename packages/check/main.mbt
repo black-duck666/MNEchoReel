@@ -49,6 +49,7 @@ fn run(args : Array[String]) -> Unit raise {
   let manifest = @json.parse(
     @fs.read_file_to_string(args[ARG_START + 1]),
     reject_duplicate_keys=true,
+    preserve_number_repr=true,
     max_nesting_depth=16,
   ) catch {
     _ =>
@@ -64,7 +65,7 @@ fn run(args : Array[String]) -> Unit raise {
     for key, _ in fields {
       if ![
           "method", "url", "body", "headers", "expect_status", "expect_body", "expect_body_base64",
-          "expect_headers",
+          "expect_headers", "expect_json",
         ].contains(key) {
         invalid(
           path, "unknown field; consult the documented request manifest fields",
@@ -177,12 +178,35 @@ fn run(args : Array[String]) -> Unit raise {
         })
       _ => invalid(path + ".expect_headers", "expected an array")
     }
+    let expected_json : Array[(String, String)] = match
+      get(item, "expect_json") {
+      None => []
+      Some(Array(values)) =>
+        values.map(value => {
+          guard value is Object(fields) && fields.length() == 2 else {
+            invalid(
+              path + ".expect_json",
+              "each assertion requires exactly pointer and value",
+            )
+          }
+          guard get(value, "pointer") is Some(String(pointer)) &&
+            get(value, "value") is Some(expected) else {
+            invalid(
+              path + ".expect_json",
+              "expected a pointer string and any JSON value",
+            )
+          }
+          (pointer, expected.stringify())
+        })
+      _ => invalid(path + ".expect_json", "expected an array")
+    }
     (
       @replay.Request::new(http_method, url, body~, headers~),
       @replay.Expectation::new(
         status?=expected,
         body?=expected_body,
         headers=expected_headers,
+        json=expected_json,
       ),
     )
   })

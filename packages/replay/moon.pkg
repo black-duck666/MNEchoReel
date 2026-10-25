@@ -6,3 +6,7 @@ import {
   "moonbitlang/core/debug",
   "gaato/http",
 }
+
+import {
+  "moonbitlang/core/encoding/utf8",
+} for "test"

@@ -63,6 +63,16 @@ SDK 接入只需将 `@transport.ReplayTransport::new(session)` 作为
 任意断言失败都不消费记录。也可用 `expected.check(response)` 检查已取得的响应。
 重复的断言头名称会拒绝，构造时复制嵌套数组。诊断只标识字段，不输出实际值。
 
+JSON API 响应可按业务字段断言，避免把易变时间戳写进整段正文期望：
+`Expectation::new(json=[("/full_name", "\"moonbitlang/core\""), ("/private", "false")])`。
+每项是 RFC 6901 字符串形式的 pointer 和一个 JSON 文本值；空 pointer 检查根值，
+`~0` / `~1` 分别表示 `~` / `/`，数组只接受无前导零的非负索引，不接受 `-` 或 URI fragment。
+对象忽略成员顺序，数组保持顺序；数字采用原始 token 精确比较（`1` 与 `1.0` 不相等），
+防止超过 Double 精度的 ID 被误判相同。缺失与 null 不相等，不执行类型转换或 schema 校验。
+正文必须是严格 UTF-8 JSON，无重复 key，深度不超过 64；选择器最多 64 段、4096 UTF-16 units，
+最多 256 项，每个期望 JSON 文本最多 1,048,576 units。失败不消费，诊断不打印 pointer 或值。
+真实 GitHub 请求清单已经使用 `/full_name`、`/private`、`/owner/login` 验证业务字段。
+
 请求身份是精确方法、完整 URL、正文 bytes 和显式选择的请求头。
 头名称忽略 ASCII 大小写，重复值的顺序参与匹配；不规范化 URL/query/body。
 默认不比较请求头，使用 `match_headers` 选择影响业务结果的头。
@@ -131,6 +141,7 @@ HEAD/204/304 的编码适配、范围/摘要/签名元数据、缺失正文和�
 `headers: [{"name":"Accept","value":"application/json"}]`、可选 `expect_status`、
 `expect_body` 或 `expect_body_base64`（互斥），以及
 `expect_headers: [{"name":"Content-Type","values":["application/json"]}]`。
+`expect_json: [{"pointer":"/private","value":false}]` 使用相同 JSON 字段断言语义。
 正文做完整字节比较，base64 必须 canonical 且带 padding。
 未知字段和类型错误会拒绝整个计划。命令按顺序执行并检查全部消费。
 退出码：0 成功，1 回放或响应断言诊断，2 清单/输入错误。诊断输出到 stdout。

@@ -20,9 +20,9 @@ type checking, on Linux, macOS and Windows.
 
 | Local runtime | Unit tests | End-to-end result |
 | --- | --- | --- |
-| Wasm | 34 passed | Identity/gzip HAR CLI, review, branch demo, SDK and rejection plans passed |
-| Wasm-GC | 29 passed | Identity/gzip HAR CLI, review, branch demo and rejection plans passed; five async tests skipped by Moon |
-| JavaScript / Node.js | 34 passed | Identity/gzip HAR CLI, review, branch demo, SDK and rejection plans passed |
+| Wasm | 38 passed | Identity/gzip HAR CLI, review, branch demo, SDK and rejection plans passed |
+| Wasm-GC | 33 passed | Identity/gzip HAR CLI, review, branch demo and rejection plans passed; five async tests skipped by Moon |
+| JavaScript / Node.js | 38 passed | Identity/gzip HAR CLI, review, branch demo, SDK and rejection plans passed |
 
 `moon fmt --check`, explicit formatting checks for both `.mbtx` tools, and
 `moon info --target all` also passed. Generated interfaces are committed.
@@ -61,3 +61,9 @@ failures. A queue-synchronized cancellation test waits for actual consumption,
 cancels the structured child workflow, then checks restored state after cleanup;
 it uses no timing assumptions. Wasm-GC skips async tests; its synchronous branch
 demo and transaction tests still execute.
+
+JSON field assertions run against the real GitHub fixture in the CLI on every
+target. Focused tests cover escaped/empty pointers, absent versus null,
+ordered arrays, reordered object members, IDs beyond Double precision,
+numeric spelling, malformed UTF-8/JSON, duplicate keys, depth/count/text limits,
+nonconsumption after failure and recovery through raw replay.

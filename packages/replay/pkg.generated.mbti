@@ -74,7 +74,7 @@ pub struct Expectation {
   // private fields
 }
 pub fn Expectation::check(Self, Response) -> Unit raise ReplayError
-pub fn Expectation::new(status? : Int32, body? : Bytes, headers? : Array[(String, Array[String])]) -> Self raise ReplayError
+pub fn Expectation::new(status? : Int32, body? : Bytes, headers? : Array[(String, Array[String])], json? : Array[(String, String)]) -> Self raise ReplayError
 
 pub(all) struct HeaderChange {
   entry_index : Int32
