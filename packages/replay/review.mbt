@@ -32,6 +32,8 @@ pub extend Change with @debug.Debug::{to_repr}
 pub struct ChangeReport {
   priv changes : Array[Change]
   priv ignored : Array[String]
+  priv json_pointers : Array[String]?
+  priv json_changes : Array[JsonFieldChange]
 }
 
 ///|
@@ -71,6 +73,24 @@ pub fn ChangeReport::render_json(self : ChangeReport) -> String {
       row
     }),
   }
+  if self.json_pointers is Some(pointers) && json is Object(fields) {
+    fields.set("body_mode", Json("json_pointers"))
+    fields.set("json_pointers", Json(pointers))
+    fields.set(
+      "json_changes",
+      Json(
+        self.json_changes.map(change => {
+          let value : Json = {
+            "before_index": change.before_index,
+            "after_index": change.after_index,
+            "pointer_index": change.pointer_index,
+            "kind": change.kind,
+          }
+          value
+        }),
+      ),
+    )
+  }
   json.stringify()
 }
 
@@ -93,6 +113,7 @@ pub fn Cassette::compare(
   after : Cassette,
   ignore_response_headers~ : Array[String] = [],
   max_cells~ : Int32 = 1000000,
+  json_pointers? : Array[String],
 ) -> ChangeReport raise ReplayError {
   for name in ignore_response_headers {
     if !token(name) {
@@ -119,6 +140,17 @@ pub fn Cassette::compare(
       "review_limit", "$review", "alignment exceeds max_cells; reduce the fixture or explicitly raise the review budget",
     )
   }
+  let pointers = json_pointers.map(review_pointers)
+  let before_json = if pointers == None {
+    []
+  } else {
+    review_json_bodies(self, "$review.before", pointers.unwrap())
+  }
+  let after_json = if pointers == None {
+    []
+  } else {
+    review_json_bodies(after, "$review.after", pointers.unwrap())
+  }
   let width = m + 1
   let lengths = Array::make((n + 1) * width, 0)
   for ri in 0..<n {
@@ -144,6 +176,7 @@ pub fn Cassette::compare(
     }
   }
   let changes : Array[Change] = []
+  let json_changes : Array[JsonFieldChange] = []
   for i = 0, j = 0; i < n || j < m; {
     if i < n &&
       j < m &&
@@ -170,7 +203,19 @@ pub fn Cassette::compare(
           after_index: Some(j),
         })
       }
-      if before.body != next.body {
+      let body_changed = match pointers {
+        None => before.body != next.body
+        Some(tokens) =>
+          compare_json_fields(
+            before_json[i],
+            after_json[j],
+            tokens,
+            i,
+            j,
+            json_changes,
+          )
+      }
+      if body_changed {
         changes.push({
           kind: Body,
           before_index: Some(i),
@@ -187,5 +232,10 @@ pub fn Cassette::compare(
     changes.push({ kind: Added, before_index: None, after_index: Some(j), })
     continue i, j + 1
   }
-  { changes, ignored: ignore_response_headers.copy(), }
+  {
+    changes,
+    ignored: ignore_response_headers.copy(),
+    json_pointers: json_pointers.map(names => names.copy()),
+    json_changes,
+  }
 }

@@ -28,7 +28,7 @@ pub struct Cassette {
 }
 pub fn Cassette::adaptation_report_json(Self) -> String
 pub fn Cassette::adaptations(Self) -> Array[HeaderChange]
-pub fn Cassette::compare(Self, Self, ignore_response_headers? : Array[String], max_cells? : Int32) -> ChangeReport raise ReplayError
+pub fn Cassette::compare(Self, Self, ignore_response_headers? : Array[String], max_cells? : Int32, json_pointers? : Array[String]) -> ChangeReport raise ReplayError
 pub fn Cassette::length(Self) -> Int32
 pub fn Cassette::request_plan(Self, assert_bodies? : Bool, max_input_units? : Int32) -> String raise ReplayError
 pub fn Cassette::session(Self, mode? : MatchMode) -> Session
@@ -59,6 +59,7 @@ pub struct ChangeReport {
 }
 pub fn ChangeReport::changes(Self) -> Array[Change]
 pub fn ChangeReport::is_empty(Self) -> Bool
+pub fn ChangeReport::json_changes(Self) -> Array[JsonFieldChange]
 pub fn ChangeReport::render_json(Self) -> String
 
 pub struct ConsumptionReport {
@@ -94,6 +95,16 @@ pub(all) struct HeaderChange {
 pub fn HeaderChange::equal(Self, Self) -> Bool
 pub fn HeaderChange::not_equal(Self, Self) -> Bool
 pub fn HeaderChange::to_repr(Self) -> @debug.Repr
+
+pub(all) struct JsonFieldChange {
+  before_index : Int32
+  after_index : Int32
+  pointer_index : Int32
+  kind : String
+} derive(Eq, @debug.Debug)
+pub fn JsonFieldChange::equal(Self, Self) -> Bool
+pub fn JsonFieldChange::not_equal(Self, Self) -> Bool
+pub fn JsonFieldChange::to_repr(Self) -> @debug.Repr
 
 pub(all) struct MatchCandidate {
   entry_index : Int32

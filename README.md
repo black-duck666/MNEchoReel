@@ -308,6 +308,24 @@ headers/body，不回显 URL、正文或头值。记录时间和浏览器元数�
 写入报告。默认 `max_cells=1000000` 限制 `(旧交互数+1)*(新交互数+1)`，超限拒绝，
 不退化成近似结果。`report.changes()` 返回副本；原始 HAR 保持在各自 cassette 中。
 
+需要忽略易变响应字段时，显式选择 JSON 比较范围：
+
+```sh
+moon run packages/review -- before.har after.har --json-pointer /full_name --ignore-header Date --ignore-header Content-Length
+```
+
+库调用 `before.compare(after, json_pointers=["/full_name"])`。仍按相同请求身份做 LCS 对齐，
+状态和未排除的头继续比较；正文只检查选定路径。缺失与 null 不同，数组保持顺序，
+对象忽略成员顺序，数字仍按 token 精确比较。空 pointer 比较整个 JSON 值。
+必须指定 1–256 个唯一合法 pointer；所有响应正文（包括新增/删除且未对齐的项）都
+必须是严格 UTF-8 JSON，非法数组选择器也拒绝，不回退到忽略或近似比较。
+
+JSON 模式报告新增 body_mode、json_pointers 和 json_changes，后者含前后记录索引、
+pointer_index 及 added/removed/changed；路径本身作为显式配置写入报告，实际值不会输出。
+`report.json_changes()` 返回副本。未指定 json_pointers 时保留原始字节比较和原报告格式。
+CLI 的 --json-pointer 与 --ignore-header 均可重复；压缩记录使用 --decoded，并在同一 JSON
+中保留 before_adaptations / after_adaptations 的完整审计。
+
 ```sh
 moon fmt --check
 moon fmt --check tools/import_capture.mbtx tools/verify.mbtx

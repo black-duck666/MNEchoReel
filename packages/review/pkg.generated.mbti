@@ -4,6 +4,7 @@ package "black-duck666/mnechoreel/review"
 // Values
 
 // Errors
+type ReviewOption
 
 // Types and methods
 

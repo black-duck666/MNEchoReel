@@ -4,6 +4,7 @@ import {
   "moonbitlang/async@0.22.5/shell",
   "moonbitlang/core/env",
   "moonbitlang/core/json",
+  "moonbitlang/core/encoding/utf8",
   "moonbitlang/x@0.5.5/fs",
 }
 ----
@@ -11,6 +12,21 @@ import {
 fn report_field(value : Json, key : String) -> Json {
   guard value is Object(fields) else { abort("report object missing") }
   fields.get(key).unwrap()
+}
+
+fn replace_identity_json(entry : Json, body : Json) -> Unit raise {
+  guard report_field(entry, "response") is Object(response) else { abort("response missing") }
+  guard report_field(entry, "response") is { "content": Object(content), "headers": Array(headers), .. } else { abort("identity content missing") }
+  assert_true(content.get("encoding") == None)
+  let text = body.stringify()
+  let length = @utf8.encode(text).length()
+  content.set("text", Json(text))
+  content.set("size", Json(length))
+  response.set("bodySize", Json(length))
+  for header in headers {
+    guard header is { "name": String(name), .. } && header is Object(fields) else { abort("header missing") }
+    if name.equal_ignore_ascii_case("content-length") { fields.set("value", Json(length.to_string())) }
+  }
 }
 
 async fn main {
@@ -250,6 +266,29 @@ async fn main {
   }
   guard revised is { "log": { "entries": Array(entries), .. }, .. } else { abort("fixture entries missing") }
   guard entries[0] is { "response": Object(response), .. } else { abort("fixture response missing") }
+  guard report_field(report_field(entries[0], "response"), "content") is { "text": String(text), .. } else { abort("JSON fixture missing") }
+  let business = @json.parse(text, preserve_number_repr=true)
+  guard business is Object(fields) else { abort("business object missing") }
+  fields.set("_review_volatile", "secret-change")
+  replace_identity_json(entries[0], business)
+  let json_review_path = "_build/echoreel-json-review.har"
+  @fs.write_string_to_file(json_review_path, revised.stringify())
+  let unchanged = @shell.Cmd("moon", ["run", "packages/review", "--target", target, "--", "examples/repository.har", json_review_path, "--json-pointer", "/full_name", "--ignore-header", "Content-Length"]).output()
+  unchanged.check()
+  assert_eq(report_field(@json.parse(unchanged.stdout()), "body_mode"), Json("json_pointers"))
+  assert_eq(report_field(@json.parse(unchanged.stdout()), "json_changes"), Json::array([]))
+  fields.set("full_name", "changed-secret")
+  replace_identity_json(entries[0], business)
+  @fs.write_string_to_file(json_review_path, revised.stringify())
+  let changed = @shell.Cmd("moon", ["run", "packages/review", "--target", target, "--", "examples/repository.har", json_review_path, "--json-pointer", "/full_name", "--ignore-header", "Content-Length"]).output()
+  assert_eq(changed.exit_code(), 1)
+  assert_false(changed.stdout().contains("secret"))
+  assert_true(changed.stdout().contains("\"kind\":\"changed\""))
+  @fs.remove_file(json_review_path)
+  let decoded_review = @shell.Cmd("moon", ["run", "packages/review", "--target", target, "--", "examples/repository-gzip.har", "examples/repository-gzip.har", "--decoded", "--json-pointer", "/full_name"]).output()
+  decoded_review.check()
+  guard report_field(report_field(@json.parse(decoded_review.stdout()), "before_adaptations"), "header_changes") is Array(audit) else { abort("review audit missing") }
+  assert_eq(audit.length(), 2)
   response.set("status", 404)
   let revised_path = "_build/echoreel-review-after.har"
   @fs.write_string_to_file(revised_path, revised.stringify())
