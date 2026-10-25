@@ -20,9 +20,9 @@ type checking, on Linux, macOS and Windows.
 
 | Local runtime | Unit tests | End-to-end result |
 | --- | --- | --- |
-| Wasm | 56 passed | Identity/gzip HAR CLI, review, branch demo, SDK and rejection plans passed |
-| Wasm-GC | 51 passed | Identity/gzip HAR CLI, review, branch demo and rejection plans passed; five async tests skipped by Moon |
-| JavaScript / Node.js | 56 passed | Identity/gzip HAR CLI, review, branch demo, SDK and rejection plans passed |
+| Wasm | 61 passed | Identity/gzip HAR CLI, review, branch demo, SDK and rejection plans passed |
+| Wasm-GC | 56 passed | Identity/gzip HAR CLI, review, branch demo and rejection plans passed; five async tests skipped by Moon |
+| JavaScript / Node.js | 61 passed | Identity/gzip HAR CLI, review, branch demo, SDK and rejection plans passed |
 
 `moon fmt --check`, explicit formatting checks for both `.mbtx` tools, and
 `moon info --target all` also passed. Generated interfaces are committed.
@@ -107,3 +107,10 @@ Tests check deterministic export, unmodified source and consumption state,
 UTF-8 BOM/Unicode/escapes, ordered duplicate headers, empty recordings and all
 256 response byte values. Generated plans parse and execute through the public
 plan API. Existing outputs are rejected without modifying their bytes.
+
+Match explanations follow actual Ordered/ByRequest/PerRequest behavior through
+a fork, including ambiguity, exhausted records, empty recordings and matched
+indices. Tests verify complete field differences without secret values, bounded
+stable ranking, nested-array/JSON isolation, scalar nulls and unchanged sessions.
+Plan/CLI tests distinguish failure-point snapshots from rolled-back final state,
+and retain default behavior and output when explanation is not requested.

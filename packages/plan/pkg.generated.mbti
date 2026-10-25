@@ -18,13 +18,14 @@ pub struct Plan {
 pub fn Plan::length(Self) -> Int32
 pub fn Plan::new(Array[(@replay.Request, @replay.Expectation)]) -> Self
 pub fn Plan::run(Self, @replay.Session, require_complete? : Bool) -> Array[@replay.Response] raise
-pub fn Plan::verify(Self, @replay.Session, require_complete? : Bool) -> RunReport raise
+pub fn Plan::verify(Self, @replay.Session, require_complete? : Bool, explain_mismatches? : Bool) -> RunReport raise
 
 pub struct RunReport {
   // private fields
 }
 pub fn RunReport::completion(Self) -> StepOutcome?
 pub fn RunReport::diagnostic(Self) -> @replay.Diagnostic?
+pub fn RunReport::explanation(Self) -> @replay.MatchReport?
 pub fn RunReport::outcomes(Self) -> Array[StepOutcome]
 pub fn RunReport::passed(Self) -> Bool
 pub fn RunReport::render_json(Self) -> String

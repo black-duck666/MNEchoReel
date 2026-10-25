@@ -20,11 +20,12 @@ suberror CliInputError {
 fn run(args : Array[String]) -> Unit raise {
   guard args.length() >= ARG_START + 2 else {
     raise CliError(
-      "usage: moon run packages/check -- <recording.har> <requests.json> [--decoded] [--report] [--mode ordered|by-request|per-request] [--match-header NAME] [--junit NEW_FILE.xml]",
+      "usage: moon run packages/check -- <recording.har> <requests.json> [--decoded] [--report] [--explain] [--mode ordered|by-request|per-request] [--match-header NAME] [--junit NEW_FILE.xml]",
     )
   }
   let mut decoded = false
   let mut report_mode = false
+  let mut explain_mode = false
   let mut chosen_mode : @replay.MatchMode? = None
   let mut junit_path : String? = None
   let match_headers : Array[String] = []
@@ -33,6 +34,7 @@ fn run(args : Array[String]) -> Unit raise {
     match flag {
       "--decoded" if !decoded => decoded = true
       "--report" if !report_mode => report_mode = true
+      "--explain" if !explain_mode => explain_mode = true
       "--junit" if junit_path == None => {
         guard options.next() is Some(path) &&
           !path.is_empty() &&
@@ -71,10 +73,11 @@ fn run(args : Array[String]) -> Unit raise {
       }
       _ =>
         raise CliError(
-          "unknown or repeated option; consult --mode, --match-header, --decoded, --report and --junit usage",
+          "unknown or repeated option; consult --mode, --match-header, --decoded, --report, --explain and --junit usage",
         )
     }
   }
+  let report_mode = report_mode || explain_mode
   let profile : @replay.BodyProfile = if decoded {
     DecodedContent
   } else {
@@ -97,7 +100,7 @@ fn run(args : Array[String]) -> Unit raise {
   }
   let session = cassette.session(mode=chosen_mode.unwrap_or(Ordered))
   if report_mode || junit_path != None {
-    let verification = plan.verify(session)
+    let verification = plan.verify(session, explain_mismatches=explain_mode)
     if junit_path is Some(path) {
       @fs.write_string_to_file(path, verification.render_junit()) catch {
         _ =>
@@ -113,6 +116,16 @@ fn run(args : Array[String]) -> Unit raise {
         verification.diagnostic(),
         Some(@json.parse(session.report().render_json())),
         Some(@json.parse(cassette.adaptation_report_json())),
+        explanation?=if explain_mode {
+          Some(
+            verification
+            .explanation()
+            .map(r => r.to_json())
+            .unwrap_or(Json::null()),
+          )
+        } else {
+          None
+        },
       )
     } else if verification.diagnostic() is Some(d) {
       println(d.format())
@@ -140,6 +153,7 @@ fn print_report(
   diagnostic : @replay.Diagnostic?,
   consumption : Json?,
   adaptations : Json?,
+  explanation? : Json,
 ) -> Unit {
   let d : Json = match diagnostic {
     None => Json::null()
@@ -152,6 +166,9 @@ fn print_report(
     "consumption": consumption.unwrap_or(Json::null()),
     "adaptations": adaptations.unwrap_or(Json::null()),
   }
+  if explanation is Some(report) && value is Object(fields) {
+    fields.set("explanation", report)
+  }
   println(value.stringify())
 }
 
@@ -161,7 +178,7 @@ fn main {
   let report_mode = args
     .iter()
     .drop(ARG_START + 2)
-    .any(arg => arg == "--report")
+    .any(arg => arg == "--report" || arg == "--explain")
   run(args) catch {
     @replay.ReplayError(d) => {
       if report_mode {

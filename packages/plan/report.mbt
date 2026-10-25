@@ -17,6 +17,7 @@ pub struct RunReport {
   priv outcomes : Array[StepOutcome]
   priv completion : StepOutcome?
   priv diagnostic : @replay.Diagnostic?
+  priv explanation : @replay.MatchReport?
 }
 
 ///|
@@ -26,10 +27,23 @@ pub fn Plan::verify(
   self : Plan,
   session : @replay.Session,
   require_complete~ : Bool = true,
+  explain_mismatches~ : Bool = false,
 ) -> RunReport raise {
   let outcomes = Array::make(self.length(), Skipped)
   let mut diagnostic = None
-  try self.execute(session, require_complete, outcomes) catch {
+  let explanations : Array[@replay.MatchReport] = []
+  try
+    self.execute(
+      session,
+      require_complete,
+      outcomes,
+      if explain_mismatches {
+        Some(explanations)
+      } else {
+        None
+      },
+    )
+  catch {
     @replay.ReplayError(d) => diagnostic = Some(d)
     e => raise e
   } noraise {
@@ -44,7 +58,7 @@ pub fn Plan::verify(
   } else {
     Some(Failed)
   }
-  { outcomes, completion, diagnostic, }
+  { outcomes, completion, diagnostic, explanation: explanations.get(0), }
 }
 
 ///|
@@ -65,6 +79,11 @@ pub fn RunReport::completion(self : RunReport) -> StepOutcome? {
 ///|
 pub fn RunReport::diagnostic(self : RunReport) -> @replay.Diagnostic? {
   self.diagnostic
+}
+
+///|
+pub fn RunReport::explanation(self : RunReport) -> @replay.MatchReport? {
+  self.explanation
 }
 
 ///|
@@ -95,6 +114,9 @@ pub fn RunReport::render_json(self : RunReport) -> String {
       step
     }),
     "completion": completion,
+  }
+  if self.explanation is Some(explanation) && value is Object(fields) {
+    fields.set("explanation", explanation.to_json())
   }
   value.stringify()
 }

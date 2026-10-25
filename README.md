@@ -55,6 +55,27 @@ SDK 接入只需将 `@transport.ReplayTransport::new(session)` 作为
 等价的重复记录按原序消费。`remaining()` 查询剩余量，`reset()` 显式重置。
 `finish()` 用于断言没有遗漏调用。
 
+### 定位请求漂移
+
+`session.explain(request)` 只读地探测实际匹配结果，并返回最接近的记录索引和
+差异字段 method/url/body/selected_headers。报告不包含 HTTP 值，不消费或重置 session，
+不改变匹配规则，也不执行响应断言。可用 matched_index() 观察实际会消费哪项；
+Ordered 另给出 next_ordered_index，帮助区别“后面有相同请求”和“现在允许消费”。
+
+候选按差异字段数量、未消费优先、原索引排序；已消费项仍可用于定位重复调用。
+默认保留 5 项，max_candidates 可设 0–100，始终扫描全部记录并标明截断情况。
+候选并不表示允许模糊匹配。candidates() 返回嵌套数组副本，to_json()/render_json()
+提供确定性快照，之后的回放或修改返回值不影响报告。
+
+```sh
+moon run packages/check -- examples/repository.har examples/repository.requests.json --explain
+```
+
+--explain 隐含 JSON 报告模式；仅在请求未命中、顺序不符或歧义时加入候选解释，
+成功及响应断言失败时 explanation 为 null。库使用 plan.verify(session,
+explain_mismatches=true)，并读取 report.explanation()。解释快照来自失败发生时，
+可能包含此前通过但随后回滚的消费；外层 consumption 仍反映原子回滚后的有效状态。
+
 ### 精确响应断言
 
 `Expectation::new(status=200, body=b"ok", headers=[("Set-Cookie", ["a=1", "b=2"])])`

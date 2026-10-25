@@ -42,11 +42,7 @@ pub fn ConsumptionReport::remaining_indices(
 pub fn ConsumptionReport::render_json(self : ConsumptionReport) -> String {
   let value : Json = {
     "schema": 1,
-    "mode": match self.mode {
-      Ordered => "ordered"
-      ByRequest => "by_request"
-      PerRequest => "per_request"
-    },
+    "mode": mode_name(self.mode),
     "total": self.used.length(),
     "consumed": self.consumed_indices(),
     "remaining": self.remaining_indices(),

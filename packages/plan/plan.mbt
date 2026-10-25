@@ -231,7 +231,12 @@ pub fn Plan::run(
   session : @replay.Session,
   require_complete~ : Bool = true,
 ) -> Array[@replay.Response] raise {
-  self.execute(session, require_complete, Array::make(self.length(), Skipped))
+  self.execute(
+    session,
+    require_complete,
+    Array::make(self.length(), Skipped),
+    None,
+  )
 }
 
 ///|
@@ -240,12 +245,19 @@ fn Plan::execute(
   session : @replay.Session,
   require_complete : Bool,
   outcomes : Array[StepOutcome],
+  explanations : Array[@replay.MatchReport]?,
 ) -> Array[@replay.Response] raise {
   session.transaction(s => {
     let responses = self.steps.mapi((i, pair) => {
       let response = s.take_checked(pair.0, pair.1) catch {
         @replay.ReplayError(d) => {
           outcomes[i] = Failed
+          if explanations is Some(reports) &&
+            ["request_mismatch", "no_match", "ambiguous_request"].contains(
+              d.code,
+            ) {
+            reports.push(s.explain(pair.0))
+          }
           raise @replay.ReplayError({
             code: d.code,
             path: step_path(i, d.path),

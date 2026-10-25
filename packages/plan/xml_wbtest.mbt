@@ -8,6 +8,7 @@ test "JUnit diagnostic text escapes all XML markup without losing Unicode" {
     outcomes: [Failed],
     completion: None,
     diagnostic: Some({ code: "test", path: "$", message: "<&>'\"拾响", }),
+    explanation: None,
   }
   assert_true(report.render_junit().contains("&lt;&amp;&gt;&apos;&quot;拾响"))
 }
@@ -18,6 +19,7 @@ test "JUnit output has stable exact bytes and unique case names" {
     outcomes: [Passed],
     completion: Some(Passed),
     diagnostic: None,
+    explanation: None,
   }
   let expected : String =
     #|<?xml version="1.0" encoding="UTF-8"?>

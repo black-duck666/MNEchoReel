@@ -85,6 +85,20 @@ async fn main {
   assert_eq(report_field(report_field(report, "diagnostic"), "code"), Json("no_match"))
   assert_false(failed_report.stdout().contains("https://"))
   assert_false(failed_report.stdout().contains("moonbitlang"))
+  let explanation = @shell.Cmd("moon", ["run", "packages/check", "--target", target, "--", "examples/repository.har", temporary, "--explain"]).output()
+  assert_eq(explanation.exit_code(), 1)
+  let explained = @json.parse(explanation.stdout())
+  assert_eq(report_field(report_field(explained, "explanation"), "outcome"), Json("no_match"))
+  assert_eq(report_field(report_field(explained, "explanation"), "remaining"), Json(0))
+  assert_eq(report_field(report_field(explained, "consumption"), "remaining"), Json([0]))
+  assert_false(explanation.stdout().contains("https://"))
+  for flags in [["--explain"], ["--explain", "--report"], ["--report", "--explain"]] {
+    let command = ["run", "packages/check", "--target", target, "--", "examples/repository.har", "examples/repository.requests.json"]
+    command.append(flags)
+    let output = @shell.Cmd("moon", command).output()
+    output.check()
+    assert_eq(report_field(@json.parse(output.stdout()), "explanation"), Json::null())
+  }
   @fs.write_string_to_file(temporary, "[{\"unknown\":true}]")
   let invalid_report = @shell.Cmd("moon", ["run", "packages/check", "--target", target, "--", "examples/repository.har", temporary, "--report"]).output()
   assert_eq(invalid_report.exit_code(), 2)

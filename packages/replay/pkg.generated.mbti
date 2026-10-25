@@ -95,6 +95,12 @@ pub fn HeaderChange::equal(Self, Self) -> Bool
 pub fn HeaderChange::not_equal(Self, Self) -> Bool
 pub fn HeaderChange::to_repr(Self) -> @debug.Repr
 
+pub(all) struct MatchCandidate {
+  entry_index : Int32
+  consumed : Bool
+  differences : Array[String]
+}
+
 pub(all) enum MatchMode {
   Ordered
   ByRequest
@@ -103,6 +109,15 @@ pub(all) enum MatchMode {
 pub fn MatchMode::equal(Self, Self) -> Bool
 pub fn MatchMode::not_equal(Self, Self) -> Bool
 pub fn MatchMode::to_repr(Self) -> @debug.Repr
+
+pub struct MatchReport {
+  // private fields
+}
+pub fn MatchReport::candidates(Self) -> Array[MatchCandidate]
+pub fn MatchReport::matched_index(Self) -> Int32?
+pub fn MatchReport::outcome(Self) -> String
+pub fn MatchReport::render_json(Self) -> String
+pub fn MatchReport::to_json(Self) -> Json
 
 pub struct Request {
   // private fields
@@ -125,6 +140,7 @@ pub fn Response::to_repr(Self) -> @debug.Repr
 pub struct Session {
   // private fields
 }
+pub fn Session::explain(Self, Request, max_candidates? : Int32) -> MatchReport raise ReplayError
 pub fn Session::finish(Self) -> Unit raise ReplayError
 pub fn Session::fork(Self) -> Self
 pub fn Session::remaining(Self) -> Int32
