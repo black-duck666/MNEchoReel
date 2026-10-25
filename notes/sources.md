@@ -42,6 +42,10 @@ Mooncakes 文档索引可能落后；实现固定版本并以实际下载接口�
 - [RFC 6901](https://www.rfc-editor.org/rfc/rfc6901.html)：JSON 字符串 pointer 的语法与求值参考。
   本项目只实现响应字段选择所需形式；没有复制 RFC 示例、代码或上游测试。
   数字采用本项目明确规定的 token 精确比较，不宣称实现通用 JSON Schema/JSON Patch。
+- [GitLab JUnit 报告文档](https://docs.gitlab.com/ci/testing/unit_test_reports/)：采用其公开
+  列出的常用 testsuite/testcase/failure/skipped 元素；没有复制实现、schema 或测试数据，
+  没有把 JUnit 方言说成统一标准。libxml2 的 xmllint（MIT）仅用于 Linux CI 良构性验证。
+  upload-artifact action（MIT）固定到已核对的 v4 commit，保存生成的报告，不调用外部私有服务。
 - 真实 API 数据、获取命令、许可不确定性与包裹 HAR 的来源见
   [examples/provenance.md](../examples/provenance.md)。单元测试边界数据和项目实现
   在本仓库新编写，按根目录 MIT 许可发布。

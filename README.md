@@ -146,6 +146,7 @@ HEAD/204/304 的编码适配、范围/摘要/签名元数据、缺失正文和�
 未知字段和类型错误会拒绝整个计划。命令按顺序执行并检查全部消费。
 退出码：0 成功，1 回放或响应断言诊断，2 清单/输入错误。诊断输出到 stdout。
 CLI 默认不按头匹配；`--match-header NAME` 可重复选择不同的头，对应库的 `match_headers`。
+CLI 头名参数不能以 `--` 开头；此类头名可通过库 API 选择。
 `--mode ordered|by-request|per-request` 选择匹配模式，默认 ordered；两项均可与 --report/--decoded 组合。
 
 ### 交错调用与独立重试序列
@@ -194,6 +195,29 @@ moon run packages/check -- examples/repository-gzip.har examples/repository.requ
 不记录尝试次序，也不能用来恢复 session。分支、reset 或后续消费不修改旧快照。
 多调用事务回滚后取新报告即可看到恢复结果；异步操作需等取消清理完成后再取快照。
 
+### 把回归检查交给 CI 展示
+
+```sh
+moon run packages/check -- examples/repository.har examples/repository.requests.json --junit replay.xml --report
+```
+
+输出路径必须尚不存在；父目录需已存在。CLI 在开始执行前拒绝已有路径，不覆盖夹具或
+旧报告；不要让多个进程同时写同一输出路径。计划执行后，无论通过还是回放失败都会
+写出 JUnit XML；输入验证失败不创建报告，写入失败退出 2。可与 --report、--decoded、
+--mode 和 --match-header 组合。回放失败仍退出 1，CI 不应仅靠报告文件判断成功。
+
+库 API `plan.verify(session)` 与 `run` 共享执行引擎和原子消费语义，返回 `RunReport`。
+预期的回放错误进入报告；调用方必须检查 `passed()`，意外错误仍传播。
+`outcomes()` 返回各步骤 Passed/Failed/Skipped 的副本，`completion()` 独立记录最终
+消费检查（显式关闭时为 None），`diagnostic()` 保留失败类别和步骤位置。
+`render_json()` / `render_junit()` 提供确定性报告。
+
+步骤在后续失败前通过，不代表消费已提交；报告的 `committed` 明确给出整组结果。
+首次失败后的步骤及尚未执行的完成检查标为 skipped。JUnit 使用稳定的 step.N 与
+completion 名称，不写 HTTP 内容、真实 URL 或耗时；实现常用 testsuite/testcase/failure/
+skipped 子集，没有承诺所有 JUnit 消费器扩展兼容性。CI 保存真实夹具成功报告及明确
+命名的故意失败样例，在 Linux 使用 xmllint 检查两者的 XML 良构性。
+
 ## 验证与布局
 
 ### 审查夹具更新
@@ -237,7 +261,8 @@ Moon 当前跳过 Wasm-GC 的 async tests，因此该目标验证核心与同步
 当前已实现：完整 HAR 导入、严格请求匹配、独立消费状态、有限正文 transport、
 可执行诊断、状态断言 CLI、真实数据 SDK 示例。
 
-已补充响应断言、夹具行为审查、带完整修改清单的 decoded-body 头适配、分支与多调用回滚。
+已补充精确/JSON 字段响应断言、夹具行为审查、带修改审计的 decoded-body 头适配、
+分支与多调用回滚、可复用原子计划、交错重试序列、消费快照及 JSON/JUnit CI 报告。
 后续按能力推进：更多可以完整还原的请求正文 profile。录制代理、自动脱敏、OpenAPI 校验和
 通用 HTTP 客户端不在边界内。详细场景见 [contract](notes/contract.md)，生态定位与
 复用来源见 [sources](notes/sources.md)。

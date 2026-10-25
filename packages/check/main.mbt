@@ -20,18 +20,34 @@ suberror CliInputError {
 fn run(args : Array[String]) -> Unit raise {
   guard args.length() >= ARG_START + 2 else {
     raise CliError(
-      "usage: moon run packages/check -- <recording.har> <requests.json> [--decoded] [--report] [--mode ordered|by-request|per-request] [--match-header NAME]",
+      "usage: moon run packages/check -- <recording.har> <requests.json> [--decoded] [--report] [--mode ordered|by-request|per-request] [--match-header NAME] [--junit NEW_FILE.xml]",
     )
   }
   let mut decoded = false
   let mut report_mode = false
   let mut chosen_mode : @replay.MatchMode? = None
+  let mut junit_path : String? = None
   let match_headers : Array[String] = []
   let options = args.iter().drop(ARG_START + 2)
   for flag in options {
     match flag {
       "--decoded" if !decoded => decoded = true
       "--report" if !report_mode => report_mode = true
+      "--junit" if junit_path == None => {
+        guard options.next() is Some(path) &&
+          !path.is_empty() &&
+          !path.has_prefix("--") else {
+          raise CliError("--junit requires a new output file path")
+        }
+        if @fs.path_exists(path) {
+          raise CliInputError({
+            code: "output_exists",
+            path: "$output",
+            message: "JUnit output already exists; choose a new path or deliberately remove the old artifact",
+          })
+        }
+        junit_path = Some(path)
+      }
       "--mode" if chosen_mode == None =>
         chosen_mode = Some(
           match options.next() {
@@ -55,7 +71,7 @@ fn run(args : Array[String]) -> Unit raise {
       }
       _ =>
         raise CliError(
-          "unknown or repeated option; consult --mode, --match-header, --decoded and --report usage",
+          "unknown or repeated option; consult --mode, --match-header, --decoded, --report and --junit usage",
         )
     }
   }
@@ -80,24 +96,33 @@ fn run(args : Array[String]) -> Unit raise {
     e => raise e
   }
   let session = cassette.session(mode=chosen_mode.unwrap_or(Ordered))
-  if report_mode {
-    try plan.run(session) catch {
-      @replay.ReplayError(d) => {
-        print_report(
-          Some(d),
-          Some(@json.parse(session.report().render_json())),
-          Some(@json.parse(cassette.adaptation_report_json())),
-        )
-        @sys.exit(1)
+  if report_mode || junit_path != None {
+    let verification = plan.verify(session)
+    if junit_path is Some(path) {
+      @fs.write_string_to_file(path, verification.render_junit()) catch {
+        _ =>
+          raise CliInputError({
+            code: "output_error",
+            path: "$output",
+            message: "cannot write JUnit artifact; check the parent directory and write permissions",
+          })
       }
-      e => raise e
-    } noraise {
-      _ =>
-        print_report(
-          None,
-          Some(@json.parse(session.report().render_json())),
-          Some(@json.parse(cassette.adaptation_report_json())),
-        )
+    }
+    if report_mode {
+      print_report(
+        verification.diagnostic(),
+        Some(@json.parse(session.report().render_json())),
+        Some(@json.parse(cassette.adaptation_report_json())),
+      )
+    } else if verification.diagnostic() is Some(d) {
+      println(d.format())
+    } else {
+      println(
+        "all \{cassette.length()} recorded exchanges consumed; JUnit artifact written",
+      )
+    }
+    if !verification.passed() {
+      @sys.exit(1)
     }
     return
   }

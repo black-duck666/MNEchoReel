@@ -20,9 +20,9 @@ type checking, on Linux, macOS and Windows.
 
 | Local runtime | Unit tests | End-to-end result |
 | --- | --- | --- |
-| Wasm | 46 passed | Identity/gzip HAR CLI, review, branch demo, SDK and rejection plans passed |
-| Wasm-GC | 41 passed | Identity/gzip HAR CLI, review, branch demo and rejection plans passed; five async tests skipped by Moon |
-| JavaScript / Node.js | 46 passed | Identity/gzip HAR CLI, review, branch demo, SDK and rejection plans passed |
+| Wasm | 52 passed | Identity/gzip HAR CLI, review, branch demo, SDK and rejection plans passed |
+| Wasm-GC | 47 passed | Identity/gzip HAR CLI, review, branch demo and rejection plans passed; five async tests skipped by Moon |
+| JavaScript / Node.js | 52 passed | Identity/gzip HAR CLI, review, branch demo, SDK and rejection plans passed |
 
 `moon fmt --check`, explicit formatting checks for both `.mbtx` tools, and
 `moon info --target all` also passed. Generated interfaces are committed.
@@ -47,6 +47,10 @@ resource boundaries, repeated headers, source preservation, deterministic
 sessions, ambiguous requests, recovery, reset and state isolation.
 
 ## Subsequent capabilities
+
+The expanded portable test suite below was rerun on 2026-10-26 (Asia/Taipei)
+with the same verified toolchain. Native runtime and XML parser results come
+from the linked GitHub Actions runs rather than local Windows execution.
 
 The same CI matrix now executes response expectations, bounded LCS fixture
 review, audited decoded-content adaptation, and fork/transaction workflows.
@@ -88,3 +92,12 @@ check header-selected identities, assertion non-skipping, exhaustion, reset,
 fork and transactional recovery. Existing Ordered/ByRequest behavior remains
 covered. CLI E2E exercises all modes, a real captured Accept header, missing
 selected headers and malformed/duplicate mode/header flags.
+
+Reported execution shares the Plan.run engine. Tests cover every failure position
+after an existing consumed prefix, completion failures, partial and empty plans,
+copied outcomes, stable JSON/XML, exact XML bytes and repeated markup escaping.
+A regression test also checks every occurrence of repeated JSON pointer escapes.
+CLI tests create success/failure JUnit artifacts, preserve existing output bytes,
+reject malformed flags, and create no report for preflight errors. Linux CI runs
+xmllint on both generated XML files; every runtime job uploads the two artifacts.
+The failure artifact is an intentional negative test, not a failed CI job.

@@ -35,7 +35,7 @@ fn pointer_tokens(pointer : String) -> Array[String] raise ReplayError {
         "invalid_expectation", "$expect.json", "JSON pointer has a trailing escape",
       )
     }
-    part.replace(old="~1", new="/").replace(old="~0", new="~")
+    part.replace_all(old="~1", new="/").replace_all(old="~0", new="~")
   })
 }
 

@@ -9,6 +9,24 @@ fn json_session(text : String) -> @replay.Session raise {
 }
 
 ///|
+test "every repeated pointer escape decodes in the required order" {
+  for key in ["a/b/c", "~~/~1/~0", "拾响//~🙂", "", "////~~~~", "~01~01"] {
+    let root = Json::empty_object()
+    put(root, key, 7)
+    let pointer = "/" +
+      key.replace_all(old="~", new="~0").replace_all(old="/", new="~1")
+    let session = json_session(root.stringify())
+    ignore(
+      session.take_checked(
+        @replay.Request::new("GET", "https://example.invalid/a"),
+        @replay.Expectation::new(json=[(pointer, "7")]),
+      ),
+    )
+    session.finish()
+  }
+}
+
+///|
 test "JSON assertions bound expected text and handle non-UTF8 bodies without changing raw replay" {
   let request = @replay.Request::new("GET", "https://example.invalid/a")
   let e = entry()

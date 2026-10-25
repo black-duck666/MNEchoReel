@@ -231,16 +231,30 @@ pub fn Plan::run(
   session : @replay.Session,
   require_complete~ : Bool = true,
 ) -> Array[@replay.Response] raise {
+  self.execute(session, require_complete, Array::make(self.length(), Skipped))
+}
+
+///|
+fn Plan::execute(
+  self : Plan,
+  session : @replay.Session,
+  require_complete : Bool,
+  outcomes : Array[StepOutcome],
+) -> Array[@replay.Response] raise {
   session.transaction(s => {
     let responses = self.steps.mapi((i, pair) => {
-      s.take_checked(pair.0, pair.1) catch {
-        @replay.ReplayError(d) =>
+      let response = s.take_checked(pair.0, pair.1) catch {
+        @replay.ReplayError(d) => {
+          outcomes[i] = Failed
           raise @replay.ReplayError({
             code: d.code,
             path: step_path(i, d.path),
             message: d.message,
           })
+        }
       }
+      outcomes[i] = Passed
+      response
     })
     if require_complete {
       s.finish()
