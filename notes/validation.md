@@ -20,9 +20,9 @@ type checking, on Linux, macOS and Windows.
 
 | Local runtime | Unit tests | End-to-end result |
 | --- | --- | --- |
-| Wasm | 42 passed | Identity/gzip HAR CLI, review, branch demo, SDK and rejection plans passed |
-| Wasm-GC | 37 passed | Identity/gzip HAR CLI, review, branch demo and rejection plans passed; five async tests skipped by Moon |
-| JavaScript / Node.js | 42 passed | Identity/gzip HAR CLI, review, branch demo, SDK and rejection plans passed |
+| Wasm | 44 passed | Identity/gzip HAR CLI, review, branch demo, SDK and rejection plans passed |
+| Wasm-GC | 39 passed | Identity/gzip HAR CLI, review, branch demo and rejection plans passed; five async tests skipped by Moon |
+| JavaScript / Node.js | 44 passed | Identity/gzip HAR CLI, review, branch demo, SDK and rejection plans passed |
 
 `moon fmt --check`, explicit formatting checks for both `.mbtx` tools, and
 `moon info --target all` also passed. Generated interfaces are committed.
@@ -73,3 +73,12 @@ completion rollback, partial composition, repeated independent execution,
 caller-array isolation, supplied matching modes, every truncated manifest prefix,
 late invalid steps and parser limits. E2E checks exact CLI exit codes and ensures
 failed plans emit no success lines from rolled-back earlier steps.
+
+Consumption reports are checked over all masks for zero through eight entries,
+including reverse arrival order: sortedness, disjointness, complete partition,
+determinism, copied return arrays and frozen snapshots after reset. Additional
+tests cover branch isolation and assertion/transaction recovery. End-to-end JSON
+reports cover success, whole-plan rollback, malformed input, exact exit codes,
+decoded adaptation audit and both flag orders. Duplicate/unknown flags are
+rejected. CLI input compilation/expectation validation errors consistently exit 2;
+execution mismatches exit 1. Reports contain no HTTP URLs or payload values.

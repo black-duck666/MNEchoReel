@@ -6,6 +6,8 @@ package "black-duck666/mnechoreel/check"
 // Errors
 type CliError
 
+type CliInputError
+
 // Types and methods
 
 // Type aliases

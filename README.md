@@ -162,6 +162,23 @@ CLI 默认不按头匹配；需要自定义头身份时使用库的 `match_heade
 畸形断言；构造器复制调用方步骤数组。CLI 复用同一 API，只在整组成功提交后输出成功行。
 `packages/branch_demo` 用真实夹具演示同一库计划在两个独立 session 上执行。
 
+### 保存 CI 消费报告
+
+```sh
+moon run packages/check -- examples/repository.har examples/repository.requests.json --report
+moon run packages/check -- examples/repository-gzip.har examples/repository.requests.json --decoded --report
+```
+
+`--report` 让 stdout 只输出一份 JSON，包含 `schema:1`、`passed`、`diagnostic`、
+`consumption` 和 `adaptations`。退出码与普通模式相同。回放失败时记录原子回滚后的
+有效消费状态；输入尚未成功编译/验证时消费及适配字段为 null。适配字段包含完整头修改清单。
+报告不包含 URL、请求/响应正文或任意原始头值；适配清单仅包含已修改的编码/长度头。
+
+库调用 `session.report()` 获得不可变快照，`consumed_indices()` 与 `remaining_indices()`
+返回按 HAR 原始顺序递增的索引副本，`render_json()` 输出稳定 JSON。报告是有效消费状态，
+不记录尝试次序，也不能用来恢复 session。分支、reset 或后续消费不修改旧快照。
+多调用事务回滚后取新报告即可看到恢复结果；异步操作需等取消清理完成后再取快照。
+
 ## 验证与布局
 
 ### 审查夹具更新

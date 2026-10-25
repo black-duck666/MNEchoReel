@@ -12,16 +12,30 @@ suberror CliError {
 }
 
 ///|
+suberror CliInputError {
+  CliInputError(@replay.Diagnostic)
+}
+
+///|
 fn run(args : Array[String]) -> Unit raise {
-  guard args.length() == ARG_START + 2 || args.length() == ARG_START + 3 else {
+  guard args.length() >= ARG_START + 2 else {
     raise CliError(
-      "usage: moon run packages/check -- <recording.har> <requests.json> [--decoded]",
+      "usage: moon run packages/check -- <recording.har> <requests.json> [--decoded] [--report]",
     )
   }
-  let profile : @replay.BodyProfile = if args.length() == ARG_START + 3 {
-    if args[ARG_START + 2] != "--decoded" {
-      raise CliError("unknown option; expected --decoded")
+  let mut decoded = false
+  let mut report_mode = false
+  for flag in args.iter().drop(ARG_START + 2) {
+    match flag {
+      "--decoded" if !decoded => decoded = true
+      "--report" if !report_mode => report_mode = true
+      _ =>
+        raise CliError(
+          "unknown or repeated option; expected --decoded and/or --report",
+        )
     }
+  }
+  let profile : @replay.BodyProfile = if decoded {
     DecodedContent
   } else {
     Identity
@@ -29,12 +43,39 @@ fn run(args : Array[String]) -> Unit raise {
   let cassette = @replay.compile_har(
     @fs.read_file_to_string(args[ARG_START]),
     body_profile=profile,
-  )
-  if !cassette.adaptations().is_empty() {
+  ) catch {
+    @replay.ReplayError(d) => raise CliInputError(d)
+    e => raise e
+  }
+  if !report_mode && !cassette.adaptations().is_empty() {
     println(cassette.adaptation_report_json())
   }
-  let plan = @plan.parse_plan(@fs.read_file_to_string(args[ARG_START + 1]))
+  let plan = @plan.parse_plan(@fs.read_file_to_string(args[ARG_START + 1])) catch {
+    @replay.ReplayError(d) => raise CliInputError(d)
+    e => raise e
+  }
   let session = cassette.session()
+  if report_mode {
+    try plan.run(session) catch {
+      @replay.ReplayError(d) => {
+        print_report(
+          Some(d),
+          Some(@json.parse(session.report().render_json())),
+          Some(@json.parse(cassette.adaptation_report_json())),
+        )
+        @sys.exit(1)
+      }
+      e => raise e
+    } noraise {
+      _ =>
+        print_report(
+          None,
+          Some(@json.parse(session.report().render_json())),
+          Some(@json.parse(cassette.adaptation_report_json())),
+        )
+    }
+    return
+  }
   // Print successes only after every step and completion check have committed.
   for i, response in plan.run(session) {
     println(
@@ -45,20 +86,72 @@ fn run(args : Array[String]) -> Unit raise {
 }
 
 ///|
+fn print_report(
+  diagnostic : @replay.Diagnostic?,
+  consumption : Json?,
+  adaptations : Json?,
+) -> Unit {
+  let d : Json = match diagnostic {
+    None => Json::null()
+    Some(d) => { "code": d.code, "path": d.path, "message": d.message }
+  }
+  let value : Json = {
+    "schema": 1,
+    "passed": diagnostic == None,
+    "diagnostic": d,
+    "consumption": consumption.unwrap_or(Json::null()),
+    "adaptations": adaptations.unwrap_or(Json::null()),
+  }
+  println(value.stringify())
+}
+
+///|
 fn main {
-  run(@env.args()) catch {
+  let args = @env.args()
+  let report_mode = args
+    .iter()
+    .drop(ARG_START + 2)
+    .any(arg => arg == "--report")
+  run(args) catch {
     @replay.ReplayError(d) => {
-      println(d.format())
-      @sys.exit(if d.code == "manifest_error" { 2 } else { 1 })
+      if report_mode {
+        print_report(Some(d), None, None)
+      } else {
+        println(d.format())
+      }
+      @sys.exit(1)
+    }
+    CliInputError(d) => {
+      if report_mode {
+        print_report(Some(d), None, None)
+      } else {
+        println(d.format())
+      }
+      @sys.exit(2)
     }
     CliError(message) => {
-      println(message)
+      if report_mode {
+        print_report(
+          Some({ code: "usage_error", path: "$args", message, }),
+          None,
+          None,
+        )
+      } else {
+        println(message)
+      }
       @sys.exit(2)
     }
     _ => {
-      println(
-        "input_error: cannot read the input file; check its path, permissions and UTF-8 encoding",
-      )
+      let d : @replay.Diagnostic = {
+        code: "input_error",
+        path: "$input",
+        message: "cannot read the input file; check its path, permissions and UTF-8 encoding",
+      }
+      if report_mode {
+        print_report(Some(d), None, None)
+      } else {
+        println(d.format())
+      }
       @sys.exit(2)
     }
   }

@@ -60,6 +60,13 @@ pub fn ChangeReport::changes(Self) -> Array[Change]
 pub fn ChangeReport::is_empty(Self) -> Bool
 pub fn ChangeReport::render_json(Self) -> String
 
+pub struct ConsumptionReport {
+  // private fields
+}
+pub fn ConsumptionReport::consumed_indices(Self) -> Array[Int32]
+pub fn ConsumptionReport::remaining_indices(Self) -> Array[Int32]
+pub fn ConsumptionReport::render_json(Self) -> String
+
 pub(all) struct Diagnostic {
   code : String
   path : String
@@ -119,6 +126,7 @@ pub struct Session {
 pub fn Session::finish(Self) -> Unit raise ReplayError
 pub fn Session::fork(Self) -> Self
 pub fn Session::remaining(Self) -> Int32
+pub fn Session::report(Self) -> ConsumptionReport
 pub fn Session::reset(Self) -> Unit
 pub fn Session::take(Self, Request) -> Response raise ReplayError
 pub fn Session::take_checked(Self, Request, Expectation) -> Response raise ReplayError

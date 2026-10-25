@@ -8,6 +8,11 @@ import {
 }
 ----
 
+fn report_field(value : Json, key : String) -> Json {
+  guard value is Object(fields) else { abort("report object missing") }
+  fields.get(key).unwrap()
+}
+
 async fn main {
   let args = @env.args()
   guard args.length() == 2 && ["wasm", "wasm-gc", "js", "native"].contains(args[1]) else {
@@ -39,11 +44,12 @@ async fn main {
     ("[{\"method\":\"GET\",\"url\":\"https://api.github.com/repos/moonbitlang/core\",\"expect_body_base64\":\"Zh==\"}]", "manifest_error"),
     ("[{\"method\":\"GET\",\"url\":\"https://api.github.com/repos/moonbitlang/core\",\"expect_json\":[{\"pointer\":\"/private\",\"value\":true}]}]", "response_json_mismatch"),
     ("[{\"method\":\"GET\",\"url\":\"https://api.github.com/repos/moonbitlang/core\",\"expect_json\":[{\"pointer\":\"/missing\",\"value\":null}]}]", "response_json_missing"),
+    ("[{\"method\":\"GET\",\"url\":\"https://api.github.com/repos/moonbitlang/core\",\"expect_json\":[{\"pointer\":\"/~invalid\",\"value\":null}]}]", "invalid_expectation"),
   ] {
     @fs.write_string_to_file(temporary, plan)
     let output = @shell.Cmd("moon", ["run", "packages/check", "--target", target, "--", "examples/repository.har", temporary]).output()
     assert_true(output.exit_code() != 0)
-    assert_eq(output.exit_code(), if expected == "manifest_error" { 2 } else { 1 })
+    assert_eq(output.exit_code(), if expected == "manifest_error" || expected == "invalid_expectation" { 2 } else { 1 })
     assert_true((output.stdout() + output.stderr()).contains(expected))
   }
   @fs.remove_file(temporary)
@@ -52,7 +58,49 @@ async fn main {
   assert_eq(failed_plan.exit_code(), 1)
   assert_true(failed_plan.stdout().contains("$plan[1]"))
   assert_false(failed_plan.stdout().contains("0: status="))
+  let failed_report = @shell.Cmd("moon", ["run", "packages/check", "--target", target, "--", "examples/repository.har", temporary, "--report"]).output()
+  assert_eq(failed_report.exit_code(), 1)
+  let report = @json.parse(failed_report.stdout())
+  assert_eq(report_field(report, "passed"), Json(false))
+  assert_eq(report_field(report_field(report, "consumption"), "consumed"), Json::array([]))
+  assert_eq(report_field(report_field(report, "consumption"), "remaining"), Json([0]))
+  assert_eq(report_field(report_field(report, "diagnostic"), "code"), Json("no_match"))
+  assert_false(failed_report.stdout().contains("https://"))
+  assert_false(failed_report.stdout().contains("moonbitlang"))
+  @fs.write_string_to_file(temporary, "[{\"unknown\":true}]")
+  let invalid_report = @shell.Cmd("moon", ["run", "packages/check", "--target", target, "--", "examples/repository.har", temporary, "--report"]).output()
+  assert_eq(invalid_report.exit_code(), 2)
+  let invalid = @json.parse(invalid_report.stdout())
+  assert_eq(report_field(invalid, "consumption"), Json::null())
+  assert_eq(report_field(report_field(invalid, "diagnostic"), "code"), Json("manifest_error"))
+  @fs.write_string_to_file(temporary, "not HAR JSON")
+  let bad_har = @shell.Cmd("moon", ["run", "packages/check", "--target", target, "--", temporary, "examples/repository.requests.json", "--report"]).output()
+  assert_eq(bad_har.exit_code(), 2)
+  let bad = @json.parse(bad_har.stdout())
+  assert_eq(report_field(bad, "consumption"), Json::null())
+  assert_eq(report_field(report_field(bad, "diagnostic"), "code"), Json("invalid_json"))
   @fs.remove_file(temporary)
+  for flags in [["--report"], ["--decoded", "--report"], ["--report", "--decoded"]] {
+    let capture = if flags.contains("--decoded") { "examples/repository-gzip.har" } else { "examples/repository.har" }
+    let command = ["run", "packages/check", "--target", target, "--", capture, "examples/repository.requests.json"]
+    command.append(flags)
+    let output = @shell.Cmd("moon", command).output()
+    output.check()
+    let report = @json.parse(output.stdout())
+    assert_eq(report_field(report, "passed"), Json(true))
+    assert_eq(report_field(report, "diagnostic"), Json::null())
+    assert_eq(report_field(report_field(report, "consumption"), "remaining"), Json::array([]))
+    assert_eq(report_field(report_field(report, "consumption"), "consumed"), Json([0]))
+    guard report_field(report_field(report, "adaptations"), "header_changes") is Array(changes) else { abort("adaptation list missing") }
+    assert_eq(changes.length(), if flags.contains("--decoded") { 2 } else { 0 })
+  }
+  for flags in [["--report", "--report"], ["--decoded", "--decoded", "--report"], ["--report", "--unknown"]] {
+    let command = ["run", "packages/check", "--target", target, "--", "examples/repository.har", "examples/repository.requests.json"]
+    command.append(flags)
+    let output = @shell.Cmd("moon", command).output()
+    assert_eq(output.exit_code(), 2)
+    assert_eq(report_field(report_field(@json.parse(output.stdout()), "diagnostic"), "code"), Json("usage_error"))
+  }
   let revised = @json.parse(@fs.read_file_to_string("examples/repository.har"), preserve_number_repr=true)
   guard revised is { "log": { "entries": Array(entries), .. }, .. } else { abort("fixture entries missing") }
   guard entries[0] is { "response": Object(response), .. } else { abort("fixture response missing") }
