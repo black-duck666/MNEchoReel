@@ -96,7 +96,7 @@ fn outcome_name(outcome : StepOutcome) -> String {
 }
 
 ///|
-pub fn RunReport::render_json(self : RunReport) -> String {
+fn RunReport::json(self : RunReport) -> Json {
   let diagnostic : Json = match self.diagnostic {
     None => Json::null()
     Some(d) => { "code": d.code, "path": d.path, "message": d.message }
@@ -118,7 +118,12 @@ pub fn RunReport::render_json(self : RunReport) -> String {
   if self.explanation is Some(explanation) && value is Object(fields) {
     fields.set("explanation", explanation.to_json())
   }
-  value.stringify()
+  value
+}
+
+///|
+pub fn RunReport::render_json(self : RunReport) -> String {
+  self.json().stringify()
 }
 
 ///|
@@ -137,9 +142,14 @@ fn xml_case(
   name : String,
   outcome : StepOutcome,
   diagnostic : @replay.Diagnostic?,
+  classname~ : String = "echoreel.plan",
 ) -> Unit {
   output.write_string(
-    "  <testcase classname=\"echoreel.plan\" name=\"" + name + "\">",
+    "  <testcase classname=\"" +
+    xml_escape(classname) +
+    "\" name=\"" +
+    xml_escape(name) +
+    "\">",
   )
   match outcome {
     Passed => ()
@@ -164,25 +174,42 @@ fn xml_case(
 ///|
 /// Minimal JUnit XML: stable names, no timings, HTTP payloads, URLs or raw headers.
 pub fn RunReport::render_junit(self : RunReport) -> String {
+  let output = StringBuilder()
+  output.write_string("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n")
+  self.write_junit(output, "EchoReel", "echoreel.plan")
+  output.to_string()
+}
+
+///|
+fn RunReport::counts(self : RunReport) -> (Int32, Int32, Int32) {
   let tests = self.outcomes.length() +
     (if self.completion == None { 0 } else { 1 })
   let skipped = self.outcomes.iter().filter(s => s == Skipped).count() +
     (if self.completion == Some(Skipped) { 1 } else { 0 })
   let failures = if self.passed() { 0 } else { 1 }
-  let output = StringBuilder()
-  output.write_string("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n")
+  (tests, failures, skipped)
+}
+
+///|
+fn RunReport::write_junit(
+  self : RunReport,
+  output : StringBuilder,
+  name : String,
+  classname : String,
+  prefix~ : String = "",
+) -> Unit {
+  let (tests, failures, skipped) = self.counts()
   output.write_string(
-    "<testsuite name=\"EchoReel\" tests=\"\{tests}\" failures=\"\{failures}\" errors=\"0\" skipped=\"\{skipped}\">\n",
+    "<testsuite name=\"\{xml_escape(name)}\" tests=\"\{tests}\" failures=\"\{failures}\" errors=\"0\" skipped=\"\{skipped}\">\n",
   )
   output.write_string(
     "  <properties><property name=\"committed\" value=\"\{self.passed()}\"/></properties>\n",
   )
   for i, outcome in self.outcomes {
-    xml_case(output, "step.\{i}", outcome, self.diagnostic)
+    xml_case(output, prefix + "step.\{i}", outcome, self.diagnostic, classname~)
   }
   if self.completion is Some(state) {
-    xml_case(output, "completion", state, self.diagnostic)
+    xml_case(output, prefix + "completion", state, self.diagnostic, classname~)
   }
   output.write_string("</testsuite>\n")
-  output.to_string()
 }

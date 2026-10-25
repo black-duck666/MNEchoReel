@@ -20,9 +20,9 @@ type checking, on Linux, macOS and Windows.
 
 | Local runtime | Unit tests | End-to-end result |
 | --- | --- | --- |
-| Wasm | 61 passed | Identity/gzip HAR CLI, review, branch demo, SDK and rejection plans passed |
-| Wasm-GC | 56 passed | Identity/gzip HAR CLI, review, branch demo and rejection plans passed; five async tests skipped by Moon |
-| JavaScript / Node.js | 61 passed | Identity/gzip HAR CLI, review, branch demo, SDK and rejection plans passed |
+| Wasm | 64 passed | Identity/gzip HAR CLI, review, branch demo, SDK and rejection plans passed |
+| Wasm-GC | 59 passed | Identity/gzip HAR CLI, review, branch demo and rejection plans passed; five async tests skipped by Moon |
+| JavaScript / Node.js | 64 passed | Identity/gzip HAR CLI, review, branch demo, SDK and rejection plans passed |
 
 `moon fmt --check`, explicit formatting checks for both `.mbtx` tools, and
 `moon info --target all` also passed. Generated interfaces are committed.
@@ -114,3 +114,11 @@ indices. Tests verify complete field differences without secret values, bounded
 stable ranking, nested-array/JSON isolation, scalar nulls and unchanged sessions.
 Plan/CLI tests distinguish failure-point snapshots from rolled-back final state,
 and retain default behavior and output when explanation is not requested.
+
+Suite tests cover continued execution after failure, fresh-session isolation,
+unique stable CI identities, inclusive case/check budgets, empty library suites,
+and deterministic aggregate JSON/XML. The real two-capture suite runs on every
+target; E2E tests verify decoded audits, mixed failed/passing cases, failure-point
+explanations, preflight rejection, preserved outputs and no partial report on
+input errors. Linux CI validates both suite XML samples with xmllint. Original
+single-plan JUnit bytes remain covered by the existing exact-output regression.

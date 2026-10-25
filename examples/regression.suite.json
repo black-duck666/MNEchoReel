@@ -1,0 +1,6 @@
+[
+  { "name": "identity", "har": "examples/repository.har", "requests": "examples/repository.requests.json",
+    "match_headers": ["Accept"] },
+  { "name": "decoded", "har": "examples/repository-gzip.har", "requests": "examples/repository.requests.json",
+    "decoded": true, "mode": "per-request", "match_headers": ["Accept"] }
+]

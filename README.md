@@ -260,6 +260,30 @@ skipped 子集，没有承诺所有 JUnit 消费器扩展兼容性。CI 保存�
 
 ## 验证与布局
 
+### 批量执行回归夹具
+
+```sh
+moon run packages/suite -- examples/regression.suite.json --explain --junit suite.xml
+```
+
+示例同时验证真实 identity 与 gzip 记录。清单为数组，每项要求 name、har、requests，
+可选 decoded 布尔值、mode（ordered/by-request/per-request）与 match_headers 字符串数组。
+文件路径按进程工作目录解析，也可填写绝对路径；上述命令在仓库根目录运行。
+name 是公开 CI 标识：1–128 个 ASCII 字母、数字、点、下划线或连字符，区分大小写且唯一。
+
+先编译所有输入并校验预算，再按清单顺序执行；每个用例使用独立的新 session，检查
+完整消费。一项回放失败仍继续后续用例。stdout 始终是汇总 JSON，保留每项诊断、可选
+匹配解释和完整 decoded 头修改审计。退出码 0 全部通过、1 存在回放失败、2 输入/输出错误。
+输入无效时 cases 为空，且不创建 JUnit；--junit 拒绝已有路径。
+JUnit 中 suite、classname 与 testcase 名称均区分用例，避免多组 step.0 发生结果冲突。
+
+库入口 `SuiteCase::new(name, cassette, plan, mode=Ordered)` 与 `verify_suite(cases)`，
+返回 SuiteReport，可查询 passed()/cases()，并生成稳定 JSON/JUnit。失败不会消费调用方
+的 cassette 或其他 session。库默认最多 1000 项和 1,000,000 次检查（每项完成检查也计入），
+可通过 max_cases/max_checks 调整；库可显式运行空集合，CLI 要求 1–1000 项。
+CLI 清单最多 4,194,304 UTF-16 units，清单及所有 HAR/请求计划合计最多 67,108,864 units；
+每份输入仍受原有编译上限约束。这些是接受上限，不是进程内存配额。
+
 ### 审查夹具更新
 
 ```sh

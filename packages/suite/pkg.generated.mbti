@@ -1,0 +1,13 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "black-duck666/mnechoreel/suite"
+
+// Values
+
+// Errors
+type SuiteError
+
+// Types and methods
+
+// Type aliases
+
+// Traits

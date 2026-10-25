@@ -9,6 +9,8 @@ import {
 // Values
 pub fn parse_plan(String, max_input_units? : Int32, max_steps? : Int32) -> Plan raise @replay.ReplayError
 
+pub fn verify_suite(Array[SuiteCase], max_cases? : Int32, max_checks? : Int32, explain_mismatches? : Bool) -> SuiteReport raise
+
 // Errors
 
 // Types and methods
@@ -39,6 +41,19 @@ pub(all) enum StepOutcome {
 pub fn StepOutcome::equal(Self, Self) -> Bool
 pub fn StepOutcome::not_equal(Self, Self) -> Bool
 pub fn StepOutcome::to_repr(Self) -> @debug.Repr
+
+pub struct SuiteCase {
+  // private fields
+}
+pub fn SuiteCase::new(String, @replay.Cassette, Plan, mode? : @replay.MatchMode) -> Self raise @replay.ReplayError
+
+pub struct SuiteReport {
+  // private fields
+}
+pub fn SuiteReport::cases(Self) -> Array[(String, RunReport)]
+pub fn SuiteReport::passed(Self) -> Bool
+pub fn SuiteReport::render_json(Self) -> String
+pub fn SuiteReport::render_junit(Self) -> String
 
 // Type aliases
 
