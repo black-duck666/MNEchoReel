@@ -48,9 +48,12 @@ fn run(args : Array[String]) -> Unit raise {
     let path = "$[\{i}]"
     guard item is Object(fields) else { invalid(path, "expected an object") }
     for key, _ in fields {
-      if !["method", "url", "body", "headers", "expect_status"].contains(key) {
+      if ![
+          "method", "url", "body", "headers", "expect_status", "expect_body", "expect_body_base64",
+          "expect_headers",
+        ].contains(key) {
         invalid(
-          path, "unknown field; supported fields are method, url, body, headers and expect_status",
+          path, "unknown field; consult the documented request manifest fields",
         )
       }
     }
@@ -106,16 +109,72 @@ fn run(args : Array[String]) -> Unit raise {
         Some(status)
       }
     }
-    (@replay.Request::new(http_method, url, body~, headers~), expected)
+    let expected_body = match
+      (get(item, "expect_body"), get(item, "expect_body_base64")) {
+      (None, None) => None
+      (Some(String(text)), None) => Some(@utf8.encode(text))
+      (None, Some(String(text))) => {
+        let bytes = @base64.decode(text) catch {
+          _ =>
+            invalid(
+              path + ".expect_body_base64",
+              "expected canonical padded base64",
+            )
+        }
+        if @base64.encode(bytes) != text {
+          invalid(
+            path + ".expect_body_base64",
+            "expected canonical padded base64 without whitespace",
+          )
+        }
+        Some(bytes)
+      }
+      _ =>
+        invalid(
+          path, "expect_body and expect_body_base64 must be strings and are mutually exclusive",
+        )
+    }
+    let expected_headers : Array[(String, Array[String])] = match
+      get(item, "expect_headers") {
+      None => []
+      Some(Array(values)) =>
+        values.map(value => {
+          guard value is Object(fields) && fields.length() == 2 else {
+            invalid(
+              path + ".expect_headers",
+              "each assertion requires exactly name and values",
+            )
+          }
+          guard value is { "name": String(name), "values": Array(items), .. } else {
+            invalid(
+              path + ".expect_headers",
+              "expected name string and values array",
+            )
+          }
+          (
+            name,
+            items.map(v => {
+              match v {
+                String(text) => text
+                _ => invalid(path + ".expect_headers", "values must be strings")
+              }
+            }),
+          )
+        })
+      _ => invalid(path + ".expect_headers", "expected an array")
+    }
+    (
+      @replay.Request::new(http_method, url, body~, headers~),
+      @replay.Expectation::new(
+        status?=expected,
+        body?=expected_body,
+        headers=expected_headers,
+      ),
+    )
   })
   let session = cassette.session()
   for i, (request, expected) in plan {
-    let response = session.take(request)
-    if expected is Some(status) && status != response.status() {
-      raise CliError(
-        "status_mismatch at $[\{i}]: expected \{status}, recorded \{response.status()}",
-      )
-    }
+    let response = session.take_checked(request, expected)
     println(
       "\{i}: status=\{response.status()} bytes=\{response.body().length()}",
     )

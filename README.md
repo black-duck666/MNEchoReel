@@ -55,6 +55,14 @@ SDK 接入只需将 `@transport.ReplayTransport::new(session)` 作为
 等价的重复记录按原序消费。`remaining()` 查询剩余量，`reset()` 显式重置。
 `finish()` 用于断言没有遗漏调用。
 
+### 精确响应断言
+
+`Expectation::new(status=200, body=b"ok", headers=[("Set-Cookie", ["a=1", "b=2"])])`
+可以选择检查状态、完整正文 bytes 和指定头的全部有序值；空值列表断言该头不存在。
+`session.take_checked(request, expected)` 将请求匹配、响应断言和消费合并为一次原子操作：
+任意断言失败都不消费记录。也可用 `expected.check(response)` 检查已取得的响应。
+重复的断言头名称会拒绝，构造时复制嵌套数组。诊断只标识字段，不输出实际值。
+
 请求身份是精确方法、完整 URL、正文 bytes 和显式选择的请求头。
 头名称忽略 ASCII 大小写，重复值的顺序参与匹配；不规范化 URL/query/body。
 默认不比较请求头，使用 `match_headers` 选择影响业务结果的头。
@@ -86,9 +94,12 @@ Cookie/redirect 元数据不能替代缺失的 Cookie、Set-Cookie、Location �
 ## 请求清单与命令行
 
 清单是数组，每项支持 `method`、`url`、可选 UTF-8 `body`、有序
-`headers: [{"name":"Accept","value":"application/json"}]`、可选 `expect_status`。
+`headers: [{"name":"Accept","value":"application/json"}]`、可选 `expect_status`、
+`expect_body` 或 `expect_body_base64`（互斥），以及
+`expect_headers: [{"name":"Content-Type","values":["application/json"]}]`。
+正文做完整字节比较，base64 必须 canonical 且带 padding。
 未知字段和类型错误会拒绝整个计划。命令按顺序执行并检查全部消费。
-退出码：0 成功，1 回放诊断，2 清单/输入/状态断言错误。诊断输出到 stdout。
+退出码：0 成功，1 回放或响应断言诊断，2 清单/输入错误。诊断输出到 stdout。
 CLI 默认不按头匹配；需要自定义头身份时使用库的 `match_headers`。
 
 ## 验证与布局

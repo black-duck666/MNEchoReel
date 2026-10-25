@@ -30,9 +30,10 @@ fn mismatch(a : Request, b : Request, names : Array[String]) -> String? {
 
 ///|
 /// A failed lookup never consumes an exchange. There is no network fallback.
-pub fn Session::take(
+fn Session::take_with(
   self : Session,
   request : Request,
+  expected : Expectation?,
 ) -> Response raise ReplayError {
   let mut chosen : Int32? = None
   for i in 0..<self.used.length() {
@@ -75,13 +76,35 @@ pub fn Session::take(
       "no_match", "$.log.entries", "no unused matching exchange; check the request and cassette consumption",
     )
   }
-  self.used[index] = true
   let response = self.cassette.exchanges[index].response
+  if expected is Some(check) {
+    check.check(response)
+  }
+  self.used[index] = true
   {
     status: response.status,
     headers: response.headers.copy(),
     body: response.body,
   }
+}
+
+///|
+/// Match and consume one recorded response without additional assertions.
+pub fn Session::take(
+  self : Session,
+  request : Request,
+) -> Response raise ReplayError {
+  self.take_with(request, None)
+}
+
+///|
+/// Match and assert atomically. A failed assertion consumes nothing.
+pub fn Session::take_checked(
+  self : Session,
+  request : Request,
+  expected : Expectation,
+) -> Response raise ReplayError {
+  self.take_with(request, Some(expected))
 }
 
 ///|

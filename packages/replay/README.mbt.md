@@ -15,3 +15,16 @@ test {
   assert_eq(cassette.source(), source)
 }
 ```
+
+Response checks are optional and exact. This constructor requires no I/O:
+
+```mbt check
+///|
+test {
+  ignore(
+    @replay.Expectation::new(status=200, body=b"ok", headers=[
+      ("X-Optional", []),
+    ]),
+  )
+}
+```
