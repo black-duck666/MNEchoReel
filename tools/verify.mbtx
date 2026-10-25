@@ -62,6 +62,9 @@ async fn main {
     ("[{\"method\":\"GET\",\"url\":\"https://api.github.com/repos/moonbitlang/core\",\"expect_body_base64\":\"Zh==\"}]", "manifest_error"),
     ("[{\"method\":\"GET\",\"url\":\"https://api.github.com/repos/moonbitlang/core\",\"expect_json\":[{\"pointer\":\"/private\",\"value\":true}]}]", "response_json_mismatch"),
     ("[{\"method\":\"GET\",\"url\":\"https://api.github.com/repos/moonbitlang/core\",\"expect_json\":[{\"pointer\":\"/missing\",\"value\":null}]}]", "response_json_missing"),
+    ("[{\"method\":\"GET\",\"url\":\"https://api.github.com/repos/moonbitlang/core\",\"expect_json_present\":[\"/missing\"]}]", "response_json_missing"),
+    ("[{\"method\":\"GET\",\"url\":\"https://api.github.com/repos/moonbitlang/core\",\"expect_json_absent\":[\"/owner\"]}]", "response_json_present"),
+    ("[{\"method\":\"GET\",\"url\":\"https://api.github.com/repos/moonbitlang/core\",\"expect_json_present\":\"/owner\"}]", "manifest_error"),
     ("[{\"method\":\"GET\",\"url\":\"https://api.github.com/repos/moonbitlang/core\",\"expect_json\":[{\"pointer\":\"/~invalid\",\"value\":null}]}]", "invalid_expectation"),
   ] {
     @fs.write_string_to_file(temporary, plan)

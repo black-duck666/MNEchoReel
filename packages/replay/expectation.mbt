@@ -5,6 +5,8 @@ pub struct Expectation {
   priv body : Bytes?
   priv headers : Array[(String, Array[String])]
   priv json_checks : Array[(Array[String], Json)]
+  priv json_present : Array[Array[String]]
+  priv json_absent : Array[Array[String]]
 }
 
 ///|
@@ -14,6 +16,8 @@ pub fn Expectation::new(
   body? : Bytes,
   headers~ : Array[(String, Array[String])] = [],
   json~ : Array[(String, String)] = [],
+  json_present~ : Array[String] = [],
+  json_absent~ : Array[String] = [],
 ) -> Expectation raise ReplayError {
   if status is Some(value) && (value < 200 || value > 599) {
     fail(
@@ -29,9 +33,11 @@ pub fn Expectation::new(
     }
     names.push(name)
   }
-  if json.length() > 256 {
+  if json.length() > 256 ||
+    json_present.length() > 256 - json.length() ||
+    json_absent.length() > 256 - json.length() - json_present.length() {
     fail(
-      "invalid_expectation", "$expect.json", "at most 256 JSON field assertions are supported",
+      "invalid_expectation", "$expect.json", "at most 256 combined JSON value/presence assertions are supported",
     )
   }
   let json_checks = json.map(pair => {
@@ -54,11 +60,23 @@ pub fn Expectation::new(
     }
     (tokens, value)
   })
+  let present = json_present.map(pointer_tokens)
+  let absent = json_absent.map(pointer_tokens)
+  for tokens in absent {
+    if present.contains(tokens) ||
+      json_checks.iter().any(pair => pair.0 == tokens) {
+      fail(
+        "invalid_expectation", "$expect.json_absent", "one pointer cannot be both absent and present or value-checked",
+      )
+    }
+  }
   {
     status,
     body,
     headers: headers.map(pair => (pair.0, pair.1.copy())),
     json_checks,
+    json_present: present,
+    json_absent: absent,
   }
 }
 
@@ -85,7 +103,9 @@ pub fn Expectation::check(
       )
     }
   }
-  if !self.json_checks.is_empty() {
+  if !self.json_checks.is_empty() ||
+    !self.json_present.is_empty() ||
+    !self.json_absent.is_empty() {
     self.check_json(response.body)
   }
 }

@@ -94,6 +94,13 @@ JSON API 响应可按业务字段断言，避免把易变时间戳写进整段�
 最多 256 项，每个期望 JSON 文本最多 1,048,576 units。失败不消费，诊断不打印 pointer 或值。
 真实 GitHub 请求清单已经使用 `/full_name`、`/private`、`/owner/login` 验证业务字段。
 
+可用 `Expectation::new(json_present=["/owner"], json_absent=["/access_token"])`
+检查字段是否存在，适合验证必要业务字段和不应返回的凭据字段。null 算作存在，缺失父对象
+算作路径不存在；数组索引必须是规范非负十进制，非法索引不会被当成“字段不存在”而通过。
+三类 JSON 检查合计最多 256 项，同一路径的 absent 与 present/精确值断言互斥。
+清单使用 `expect_json_present` / `expect_json_absent` 字符串数组；单独使用缺失断言也要求
+完整、合法的 UTF-8 JSON 正文。失败不消费记录，诊断不回显路径内容或实际值。
+
 请求身份是精确方法、完整 URL、正文 bytes 和显式选择的请求头。
 头名称忽略 ASCII 大小写，重复值的顺序参与匹配；不规范化 URL/query/body。
 默认不比较请求头，使用 `match_headers` 选择影响业务结果的头。

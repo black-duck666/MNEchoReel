@@ -28,6 +28,25 @@ fn get(object : Json, key : String) -> Json? {
 }
 
 ///|
+fn pointer_list(
+  item : Json,
+  key : String,
+  path : String,
+) -> Array[String] raise @replay.ReplayError {
+  match get(item, key) {
+    None => []
+    Some(Array(values)) =>
+      values.map(value => {
+        match value {
+          String(pointer) => pointer
+          _ => invalid(path + "." + key, "expected JSON pointer strings")
+        }
+      })
+    _ => invalid(path + "." + key, "expected an array of JSON pointer strings")
+  }
+}
+
+///|
 fn step_path(i : Int32, path : String) -> String {
   "$plan[\{i}]" +
   (if path.has_prefix("$.") {
@@ -69,7 +88,7 @@ pub fn parse_plan(
     for key, _ in fields {
       if ![
           "method", "url", "body", "headers", "expect_status", "expect_body", "expect_body_base64",
-          "expect_headers", "expect_json",
+          "expect_headers", "expect_json", "expect_json_present", "expect_json_absent",
         ].contains(key) {
         invalid(
           path, "unknown field; consult the documented request manifest fields",
@@ -204,6 +223,8 @@ pub fn parse_plan(
         })
       _ => invalid(path + ".expect_json", "expected an array")
     }
+    let expected_present = pointer_list(item, "expect_json_present", path)
+    let expected_absent = pointer_list(item, "expect_json_absent", path)
     (
       @replay.Request::new(http_method, url, body~, headers~),
       @replay.Expectation::new(
@@ -211,6 +232,8 @@ pub fn parse_plan(
         body?=expected_body,
         headers=expected_headers,
         json=expected_json,
+        json_present=expected_present,
+        json_absent=expected_absent,
       ) catch {
         @replay.ReplayError(d) =>
           raise @replay.ReplayError({

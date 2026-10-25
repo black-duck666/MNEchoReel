@@ -40,23 +40,29 @@ fn pointer_tokens(pointer : String) -> Array[String] raise ReplayError {
 }
 
 ///|
-fn pointer_value(root : Json, tokens : Array[String]) -> Json? {
+priv enum JsonLookup {
+  Located(Json)
+  NotFound
+  BadIndex
+}
+
+///|
+fn pointer_lookup(root : Json, tokens : Array[String]) -> JsonLookup {
   let mut value = root
   for token in tokens {
     let next = match value {
       Object(fields) => fields.get(token)
       Array(items) => {
-        if token.is_empty() || (token.length() > 1 && token.has_prefix("0")) {
-          return None
+        if token.is_empty() ||
+          (token.length() > 1 && token.has_prefix("0")) ||
+          !token.iter().all(c => c.is_ascii_digit()) {
+          return BadIndex
         }
         let mut index = 0
         for c in token.iter() {
-          if !c.is_ascii_digit() {
-            return None
-          }
           let digit = c.to_int() - '0'.to_int()
           if index > (2147483647 - digit) / 10 {
-            return None
+            return NotFound
           }
           index = index * 10 + digit
         }
@@ -64,10 +70,48 @@ fn pointer_value(root : Json, tokens : Array[String]) -> Json? {
       }
       _ => None
     }
-    guard next is Some(found) else { return None }
+    guard next is Some(found) else { return NotFound }
     value = found
   }
-  Some(value)
+  Located(value)
+}
+
+///|
+fn pointer_value(root : Json, tokens : Array[String]) -> Json? {
+  match pointer_lookup(root, tokens) {
+    Located(value) => Some(value)
+    NotFound | BadIndex => None
+  }
+}
+
+///|
+fn check_presence(
+  root : Json,
+  checks : Array[Array[String]],
+  required : Bool,
+) -> Unit raise ReplayError {
+  for i, tokens in checks {
+    let path = if required {
+      "$expect.json_present[\{i}]"
+    } else {
+      "$expect.json_absent[\{i}]"
+    }
+    match pointer_lookup(root, tokens) {
+      BadIndex =>
+        fail(
+          "response_json_selector", path, "array selector must be a canonical nonnegative decimal index; no exchange consumed",
+        )
+      NotFound if required =>
+        fail(
+          "response_json_missing", path, "required JSON pointer does not resolve; no exchange consumed",
+        )
+      Located(_) if !required =>
+        fail(
+          "response_json_present", path, "forbidden JSON pointer resolves, including null; no exchange consumed",
+        )
+      _ => ()
+    }
+  }
 }
 
 ///|
@@ -130,4 +174,6 @@ fn Expectation::check_json(
       )
     }
   }
+  check_presence(root, self.json_present, true)
+  check_presence(root, self.json_absent, false)
 }

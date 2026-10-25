@@ -20,9 +20,9 @@ type checking, on Linux, macOS and Windows.
 
 | Local runtime | Unit tests | End-to-end result |
 | --- | --- | --- |
-| Wasm | 64 passed | Identity/gzip HAR CLI, review, branch demo, SDK and rejection plans passed |
-| Wasm-GC | 59 passed | Identity/gzip HAR CLI, review, branch demo and rejection plans passed; five async tests skipped by Moon |
-| JavaScript / Node.js | 64 passed | Identity/gzip HAR CLI, review, branch demo, SDK and rejection plans passed |
+| Wasm | 68 passed | Identity/gzip HAR CLI, review, branch demo, SDK and rejection plans passed |
+| Wasm-GC | 63 passed | Identity/gzip HAR CLI, review, branch demo and rejection plans passed; five async tests skipped by Moon |
+| JavaScript / Node.js | 68 passed | Identity/gzip HAR CLI, review, branch demo, SDK and rejection plans passed |
 
 `moon fmt --check`, explicit formatting checks for both `.mbtx` tools, and
 `moon info --target all` also passed. Generated interfaces are committed.
@@ -122,3 +122,9 @@ target; E2E tests verify decoded audits, mixed failed/passing cases, failure-poi
 explanations, preflight rejection, preserved outputs and no partial report on
 input errors. Linux CI validates both suite XML samples with xmllint. Original
 single-plan JUnit bytes remain covered by the existing exact-output regression.
+
+JSON presence guards distinguish null from missing, enforce canonical array
+indices, reject contradictory configuration and share the combined assertion
+budget. Tests cover malformed bodies, copied caller arrays and nonconsumption.
+The real request plan now checks required owner fields and absent access_token;
+CLI rejection tests exercise both failed guards and malformed list types.
