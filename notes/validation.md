@@ -20,9 +20,9 @@ type checking, on Linux, macOS and Windows.
 
 | Local runtime | Unit tests | End-to-end result |
 | --- | --- | --- |
-| Wasm | 44 passed | Identity/gzip HAR CLI, review, branch demo, SDK and rejection plans passed |
-| Wasm-GC | 39 passed | Identity/gzip HAR CLI, review, branch demo and rejection plans passed; five async tests skipped by Moon |
-| JavaScript / Node.js | 44 passed | Identity/gzip HAR CLI, review, branch demo, SDK and rejection plans passed |
+| Wasm | 46 passed | Identity/gzip HAR CLI, review, branch demo, SDK and rejection plans passed |
+| Wasm-GC | 41 passed | Identity/gzip HAR CLI, review, branch demo and rejection plans passed; five async tests skipped by Moon |
+| JavaScript / Node.js | 46 passed | Identity/gzip HAR CLI, review, branch demo, SDK and rejection plans passed |
 
 `moon fmt --check`, explicit formatting checks for both `.mbtx` tools, and
 `moon info --target all` also passed. Generated interfaces are committed.
@@ -82,3 +82,9 @@ reports cover success, whole-plan rollback, malformed input, exact exit codes,
 decoded adaptation audit and both flag orders. Duplicate/unknown flags are
 rejected. CLI input compilation/expectation validation errors consistently exit 2;
 execution mismatches exit 1. Reports contain no HTTP URLs or payload values.
+
+PerRequest tests exhaust all six interleavings of two two-response retry streams,
+check header-selected identities, assertion non-skipping, exhaustion, reset,
+fork and transactional recovery. Existing Ordered/ByRequest behavior remains
+covered. CLI E2E exercises all modes, a real captured Accept header, missing
+selected headers and malformed/duplicate mode/header flags.

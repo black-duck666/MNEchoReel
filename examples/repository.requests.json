@@ -1,5 +1,6 @@
 [
   { "method": "GET", "url": "https://api.github.com/repos/moonbitlang/core", "expect_status": 200,
+    "headers": [{ "name": "Accept", "value": "application/vnd.github+json" }],
     "expect_headers": [{ "name": "Content-Type", "values": ["application/json; charset=utf-8"] }],
     "expect_json": [{ "pointer": "/full_name", "value": "moonbitlang/core" },
       { "pointer": "/private", "value": false }, { "pointer": "/owner/login", "value": "moonbitlang" }] }

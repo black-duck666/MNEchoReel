@@ -45,6 +45,7 @@ pub fn ConsumptionReport::render_json(self : ConsumptionReport) -> String {
     "mode": match self.mode {
       Ordered => "ordered"
       ByRequest => "by_request"
+      PerRequest => "per_request"
     },
     "total": self.used.length(),
     "consumed": self.consumed_indices(),

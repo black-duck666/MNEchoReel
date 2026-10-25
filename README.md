@@ -145,7 +145,22 @@ HEAD/204/304 的编码适配、范围/摘要/签名元数据、缺失正文和�
 正文做完整字节比较，base64 必须 canonical 且带 padding。
 未知字段和类型错误会拒绝整个计划。命令按顺序执行并检查全部消费。
 退出码：0 成功，1 回放或响应断言诊断，2 清单/输入错误。诊断输出到 stdout。
-CLI 默认不按头匹配；需要自定义头身份时使用库的 `match_headers`。
+CLI 默认不按头匹配；`--match-header NAME` 可重复选择不同的头，对应库的 `match_headers`。
+`--mode ordered|by-request|per-request` 选择匹配模式，默认 ordered；两项均可与 --report/--decoded 组合。
+
+### 交错调用与独立重试序列
+
+`cassette.session(mode=PerRequest)` 允许不同请求身份之间重排，同时为每个精确身份
+逐次返回其原记录顺序的响应。例如 A:429、B:503、A:200、B:201，可重放为
+B:503、B:201、A:429、A:200，便于测试独立 API 分支的重试。
+URL、方法、正文、选定头仍精确匹配；同身份中永远先取最早未消费项，断言失败不能
+跳过该响应。只有业务确实允许跨身份重排时才显式采用此模式；无法分辨身份相同的
+并发逻辑调用，需选择区分头或保持 Ordered。ByRequest 仍拒绝同身份不同响应。
+fork、reset、事务与计划执行都保留所选模式；它不实现并发同步、重试策略或时间模拟。
+
+```sh
+moon run packages/check -- examples/repository.har examples/repository.requests.json --mode per-request --match-header Accept --report
+```
 
 ### 将清单嵌入自己的测试
 

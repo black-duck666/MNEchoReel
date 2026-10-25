@@ -101,6 +101,23 @@ async fn main {
     assert_eq(output.exit_code(), 2)
     assert_eq(report_field(report_field(@json.parse(output.stdout()), "diagnostic"), "code"), Json("usage_error"))
   }
+  for (mode, label) in [("ordered", "ordered"), ("by-request", "by_request"), ("per-request", "per_request")] {
+    let output = @shell.Cmd("moon", ["run", "packages/check", "--target", target, "--", "examples/repository.har", "examples/repository.requests.json", "--mode", mode, "--match-header", "Accept", "--report"]).output()
+    output.check()
+    assert_eq(report_field(report_field(@json.parse(output.stdout()), "consumption"), "mode"), Json(label))
+  }
+  for flags in [["--report", "--mode"], ["--report", "--mode", "invalid"], ["--report", "--mode", "ordered", "--mode", "by-request"], ["--report", "--match-header"], ["--report", "--match-header", "X", "--match-header", "x"]] {
+    let command = ["run", "packages/check", "--target", target, "--", "examples/repository.har", "examples/repository.requests.json"]
+    command.append(flags)
+    let output = @shell.Cmd("moon", command).output()
+    assert_eq(output.exit_code(), 2)
+    assert_eq(report_field(report_field(@json.parse(output.stdout()), "diagnostic"), "code"), Json("usage_error"))
+  }
+  @fs.write_string_to_file(temporary, "[{\"method\":\"GET\",\"url\":\"https://api.github.com/repos/moonbitlang/core\"}]")
+  let header_miss = @shell.Cmd("moon", ["run", "packages/check", "--target", target, "--", "examples/repository.har", temporary, "--mode", "per-request", "--match-header", "Accept", "--report"]).output()
+  assert_eq(header_miss.exit_code(), 1)
+  assert_eq(report_field(report_field(@json.parse(header_miss.stdout()), "diagnostic"), "code"), Json("no_match"))
+  @fs.remove_file(temporary)
   let revised = @json.parse(@fs.read_file_to_string("examples/repository.har"), preserve_number_repr=true)
   guard revised is { "log": { "entries": Array(entries), .. }, .. } else { abort("fixture entries missing") }
   guard entries[0] is { "response": Object(response), .. } else { abort("fixture response missing") }

@@ -58,6 +58,10 @@ fn Session::take_with(
       break
     }
     if difference == None {
+      if self.mode == PerRequest {
+        chosen = Some(i)
+        break
+      }
       match chosen {
         None => chosen = Some(i)
         Some(first) =>

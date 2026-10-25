@@ -97,6 +97,7 @@ pub fn HeaderChange::to_repr(Self) -> @debug.Repr
 pub(all) enum MatchMode {
   Ordered
   ByRequest
+  PerRequest
 } derive(Eq, @debug.Debug)
 pub fn MatchMode::equal(Self, Self) -> Bool
 pub fn MatchMode::not_equal(Self, Self) -> Bool

@@ -20,18 +20,42 @@ suberror CliInputError {
 fn run(args : Array[String]) -> Unit raise {
   guard args.length() >= ARG_START + 2 else {
     raise CliError(
-      "usage: moon run packages/check -- <recording.har> <requests.json> [--decoded] [--report]",
+      "usage: moon run packages/check -- <recording.har> <requests.json> [--decoded] [--report] [--mode ordered|by-request|per-request] [--match-header NAME]",
     )
   }
   let mut decoded = false
   let mut report_mode = false
-  for flag in args.iter().drop(ARG_START + 2) {
+  let mut chosen_mode : @replay.MatchMode? = None
+  let match_headers : Array[String] = []
+  let options = args.iter().drop(ARG_START + 2)
+  for flag in options {
     match flag {
       "--decoded" if !decoded => decoded = true
       "--report" if !report_mode => report_mode = true
+      "--mode" if chosen_mode == None =>
+        chosen_mode = Some(
+          match options.next() {
+            Some("ordered") => @replay.Ordered
+            Some("by-request") => @replay.ByRequest
+            Some("per-request") => @replay.PerRequest
+            _ =>
+              raise CliError(
+                "--mode requires ordered, by-request or per-request",
+              )
+          },
+        )
+      "--match-header" => {
+        guard options.next() is Some(name) && !name.has_prefix("--") else {
+          raise CliError("--match-header requires a header name")
+        }
+        if match_headers.iter().any(n => n.equal_ignore_ascii_case(name)) {
+          raise CliError("repeated match-header name; names ignore ASCII case")
+        }
+        match_headers.push(name)
+      }
       _ =>
         raise CliError(
-          "unknown or repeated option; expected --decoded and/or --report",
+          "unknown or repeated option; consult --mode, --match-header, --decoded and --report usage",
         )
     }
   }
@@ -43,6 +67,7 @@ fn run(args : Array[String]) -> Unit raise {
   let cassette = @replay.compile_har(
     @fs.read_file_to_string(args[ARG_START]),
     body_profile=profile,
+    match_headers~,
   ) catch {
     @replay.ReplayError(d) => raise CliInputError(d)
     e => raise e
@@ -54,7 +79,7 @@ fn run(args : Array[String]) -> Unit raise {
     @replay.ReplayError(d) => raise CliInputError(d)
     e => raise e
   }
-  let session = cassette.session()
+  let session = cassette.session(mode=chosen_mode.unwrap_or(Ordered))
   if report_mode {
     try plan.run(session) catch {
       @replay.ReplayError(d) => {

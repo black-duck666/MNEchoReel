@@ -26,10 +26,11 @@ fn[T] fail(
 }
 
 ///|
-/// Ordered supports recorded retry sequences. ByRequest rejects divergent replies.
+/// Ordered preserves all ordering; PerRequest preserves each exact identity's sequence.
 pub(all) enum MatchMode {
   Ordered
   ByRequest
+  PerRequest
 } derive(Eq, Debug)
 
 ///|
