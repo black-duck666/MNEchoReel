@@ -19,6 +19,24 @@ async fn main {
     abort("usage: moon run tools/verify.mbtx <wasm|wasm-gc|js|native>")
   }
   let target = args[1]
+  let prepared_path = "_build/echoreel-prepared-\{target}.json"
+  for (capture, flags) in [("examples/repository.har", ["--assert-bodies"]), ("examples/repository-gzip.har", ["--decoded", "--assert-bodies"])] {
+    if @fs.path_exists(prepared_path) { @fs.remove_file(prepared_path) }
+    let command = ["run", "packages/prepare", "--target", target, "--", capture, prepared_path]
+    command.append(flags)
+    let prepared = @shell.Cmd("moon", command).output()
+    prepared.check()
+    assert_eq(report_field(@json.parse(prepared.stdout()), "steps"), Json(1))
+    let original = @fs.read_file_to_string(prepared_path)
+    let replay = ["run", "packages/check", "--target", target, "--", capture, prepared_path]
+    if flags.contains("--decoded") { replay.push("--decoded") }
+    @shell.Cmd("moon", replay).run()
+    let existing = @shell.Cmd("moon", command).output()
+    assert_eq(existing.exit_code(), 2)
+    assert_true(existing.stdout().contains("output_exists"))
+    assert_eq(@fs.read_file_to_string(prepared_path), original)
+  }
+  @fs.remove_file(prepared_path)
   for command in [
     ["check", "--target", target, "--deny-warn"],
     ["test", "--target", target, "--deny-warn"],

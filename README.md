@@ -137,6 +137,25 @@ HEAD/204/304 的编码适配、范围/摘要/签名元数据、缺失正文和�
 
 ## 请求清单与命令行
 
+从记录生成初始计划，减少手抄 URL、重复请求头和正文：
+
+```sh
+moon run packages/prepare -- examples/repository.har requests.generated.json --assert-bodies
+moon run packages/check -- examples/repository.har requests.generated.json
+```
+
+输出文件需尚不存在，父目录需已存在。prepare 保留方法、完整 URL、全部有序请求头、
+精确 UTF-8 请求正文，并为每步加入状态断言；--assert-bodies 额外加入 canonical base64
+响应正文断言。生成后可改成业务字段断言。文件包含原记录的 HTTP 数据，请只使用已净化
+夹具。stdout 是生成摘要，不回显 HTTP 值；退出 0 成功，2 表示输入/输出/选项错误。
+压缩记录需显式 --decoded；摘要包含全部头适配审计。
+
+库方法 `cassette.request_plan(assert_bodies=true)` 返回相同确定性 JSON 清单。它生成
+下游测试输入，保留原 HAR 在 source() 中，不改写 HAR，也不导出其计时或其他元数据。
+不规范化 URL、头或正文；空记录生成空计划，不消费任何 session。
+默认生成上限为 4,194,304 个 UTF-16 units，与 parse_plan 默认输入上限一致；超限拒绝。
+较大夹具可在库中同时提高 request_plan / parse_plan 的 max_input_units，CLI 采用默认上限。
+
 清单是数组，每项支持 `method`、`url`、可选 UTF-8 `body`、有序
 `headers: [{"name":"Accept","value":"application/json"}]`、可选 `expect_status`、
 `expect_body` 或 `expect_body_base64`（互斥），以及

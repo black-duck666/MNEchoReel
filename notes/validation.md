@@ -20,9 +20,9 @@ type checking, on Linux, macOS and Windows.
 
 | Local runtime | Unit tests | End-to-end result |
 | --- | --- | --- |
-| Wasm | 52 passed | Identity/gzip HAR CLI, review, branch demo, SDK and rejection plans passed |
-| Wasm-GC | 47 passed | Identity/gzip HAR CLI, review, branch demo and rejection plans passed; five async tests skipped by Moon |
-| JavaScript / Node.js | 52 passed | Identity/gzip HAR CLI, review, branch demo, SDK and rejection plans passed |
+| Wasm | 56 passed | Identity/gzip HAR CLI, review, branch demo, SDK and rejection plans passed |
+| Wasm-GC | 51 passed | Identity/gzip HAR CLI, review, branch demo and rejection plans passed; five async tests skipped by Moon |
+| JavaScript / Node.js | 56 passed | Identity/gzip HAR CLI, review, branch demo, SDK and rejection plans passed |
 
 `moon fmt --check`, explicit formatting checks for both `.mbtx` tools, and
 `moon info --target all` also passed. Generated interfaces are committed.
@@ -101,3 +101,9 @@ CLI tests create success/failure JUnit artifacts, preserve existing output bytes
 reject malformed flags, and create no report for preflight errors. Linux CI runs
 xmllint on both generated XML files; every runtime job uploads the two artifacts.
 The failure artifact is an intentional negative test, not a failed CI job.
+
+Prepared request manifests run against both real captures on every target.
+Tests check deterministic export, unmodified source and consumption state,
+UTF-8 BOM/Unicode/escapes, ordered duplicate headers, empty recordings and all
+256 response byte values. Generated plans parse and execute through the public
+plan API. Existing outputs are rejected without modifying their bytes.
