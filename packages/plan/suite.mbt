@@ -14,6 +14,15 @@ pub fn SuiteCase::new(
   plan : Plan,
   mode~ : @replay.MatchMode = Ordered,
 ) -> SuiteCase raise @replay.ReplayError {
+  validate_case_name(name, "$suite")
+  { name, cassette, plan, mode, }
+}
+
+///|
+fn validate_case_name(
+  name : String,
+  path : String,
+) -> Unit raise @replay.ReplayError {
   if name.is_empty() ||
     name.length() > 128 ||
     !name
@@ -27,11 +36,10 @@ pub fn SuiteCase::new(
     }) {
     raise @replay.ReplayError({
       code: "invalid_case_name",
-      path: "$suite",
+      path,
       message: "case names require 1-128 ASCII letters, digits, dots, underscores or hyphens",
     })
   }
-  { name, cassette, plan, mode, }
 }
 
 ///|

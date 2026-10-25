@@ -288,8 +288,18 @@ JUnit 中 suite、classname 与 testcase 名称均区分用例，避免多组 st
 返回 SuiteReport，可查询 passed()/cases()，并生成稳定 JSON/JUnit。失败不会消费调用方
 的 cassette 或其他 session。库默认最多 1000 项和 1,000,000 次检查（每项完成检查也计入），
 可通过 max_cases/max_checks 调整；库可显式运行空集合，CLI 要求 1–1000 项。
-CLI 清单最多 4,194,304 UTF-16 units，清单及所有 HAR/请求计划合计最多 67,108,864 units；
+CLI 清单最多 4,194,304 UTF-16 units，编译输入预算默认最多 67,108,864 units；
 每份输入仍受原有编译上限约束。这些是接受上限，不是进程内存配额。
+
+清单预检和共享输入加载也可直接用于下游工具：`parse_suite_manifest(text)` 返回
+SuiteManifest，source() 保留原文，names() 返回用例名副本；`manifest.load(path =>
+read_text(path))` 通过调用方读取器生成 SuiteCase 数组，再交给 verify_suite。
+全部元数据在第一次读取前验证，读取器异常原样传播；格式错误补充原始用例索引和输入类别。
+
+一次 load 内，同一精确路径只读取一次；相同 HAR 路径/decoded/请求头配置及相同请求计划
+路径分别复用编译结果，匹配模式仍由各用例的独立 session 决定。不同路径别名不自动合并。
+预算按清单原文、每个不同 HAR 编译配置和每个请求计划路径的源文本各计算一次，可通过
+max_total_input_units 调整。下次 load 使用新快照，不保留全局缓存；CLI 使用相同 API。
 
 ### 审查夹具更新
 

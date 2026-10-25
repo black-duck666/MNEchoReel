@@ -9,6 +9,8 @@ import {
 // Values
 pub fn parse_plan(String, max_input_units? : Int32, max_steps? : Int32) -> Plan raise @replay.ReplayError
 
+pub fn parse_suite_manifest(String, max_input_units? : Int32, max_cases? : Int32) -> SuiteManifest raise @replay.ReplayError
+
 pub fn verify_suite(Array[SuiteCase], max_cases? : Int32, max_checks? : Int32, explain_mismatches? : Bool) -> SuiteReport raise
 
 // Errors
@@ -46,6 +48,13 @@ pub struct SuiteCase {
   // private fields
 }
 pub fn SuiteCase::new(String, @replay.Cassette, Plan, mode? : @replay.MatchMode) -> Self raise @replay.ReplayError
+
+pub struct SuiteManifest {
+  // private fields
+}
+pub fn SuiteManifest::load(Self, (String) -> String raise, max_total_input_units? : Int32) -> Array[SuiteCase] raise
+pub fn SuiteManifest::names(Self) -> Array[String]
+pub fn SuiteManifest::source(Self) -> String
 
 pub struct SuiteReport {
   // private fields

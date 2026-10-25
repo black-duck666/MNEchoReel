@@ -20,9 +20,9 @@ type checking, on Linux, macOS and Windows.
 
 | Local runtime | Unit tests | End-to-end result |
 | --- | --- | --- |
-| Wasm | 72 passed | Identity/gzip HAR CLI, review, branch demo, SDK and rejection plans passed |
-| Wasm-GC | 67 passed | Identity/gzip HAR CLI, review, branch demo and rejection plans passed; five async tests skipped by Moon |
-| JavaScript / Node.js | 72 passed | Identity/gzip HAR CLI, review, branch demo, SDK and rejection plans passed |
+| Wasm | 77 passed | Identity/gzip HAR CLI, review, branch demo, SDK and rejection plans passed |
+| Wasm-GC | 72 passed | Identity/gzip HAR CLI, review, branch demo and rejection plans passed; five async tests skipped by Moon |
+| JavaScript / Node.js | 77 passed | Identity/gzip HAR CLI, review, branch demo, SDK and rejection plans passed |
 
 `moon fmt --check`, explicit formatting checks for both `.mbtx` tools, and
 `moon info --target all` also passed. Generated interfaces are committed.
@@ -134,3 +134,9 @@ request insertion alignment, copied reports, option limits and invalid bodies
 even when unaligned or byte-identical. CLI tests mutate a copy of the real
 fixture, update byte-length declarations and distinguish untracked versus
 tracked field changes. Decoded review reports retain both adaptation audits.
+
+Suite manifest tests use counted in-memory readers to verify one read per exact
+path, fresh later loads, original reader-error propagation, source/name isolation
+and preflight-before-I/O. Inclusive input budgets charge shared units once and
+distinct HAR variants separately. A selected-header regression proves shared
+snapshots do not merge different matchers. The CLI delegates to the same API.
