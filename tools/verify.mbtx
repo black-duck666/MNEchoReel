@@ -3,6 +3,7 @@ import {
   "moonbitlang/async@0.22.5",
   "moonbitlang/async@0.22.5/shell",
   "moonbitlang/core/env",
+  "moonbitlang/core/json",
   "moonbitlang/x@0.5.5/fs",
 }
 ----
@@ -17,6 +18,7 @@ async fn main {
     ["check", "--target", target, "--deny-warn"],
     ["test", "--target", target, "--deny-warn"],
     ["run", "packages/check", "--target", target, "--deny-warn", "--", "examples/repository.har", "examples/repository.requests.json"],
+    ["run", "packages/review", "--target", target, "--deny-warn", "--", "examples/repository.har", "examples/repository.har"],
   ] {
     @shell.Cmd("moon", command, stdout=Inherit, stderr=Inherit).run()
   }
@@ -40,5 +42,15 @@ async fn main {
     assert_true((output.stdout() + output.stderr()).contains(expected))
   }
   @fs.remove_file(temporary)
+  let revised = @json.parse(@fs.read_file_to_string("examples/repository.har"), preserve_number_repr=true)
+  guard revised is { "log": { "entries": Array(entries), .. }, .. } else { abort("fixture entries missing") }
+  guard entries[0] is { "response": Object(response), .. } else { abort("fixture response missing") }
+  response.set("status", 404)
+  let revised_path = "_build/echoreel-review-after.har"
+  @fs.write_string_to_file(revised_path, revised.stringify())
+  let review = @shell.Cmd("moon", ["run", "packages/review", "--target", target, "--", "examples/repository.har", revised_path]).output()
+  assert_true(review.exit_code() != 0)
+  assert_true(review.stdout().contains("\"kind\":\"status\""))
+  @fs.remove_file(revised_path)
   println("verified \{target}: unit tests, real capture, SDK where supported, and CLI rejection paths")
 }

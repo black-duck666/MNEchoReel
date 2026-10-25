@@ -13,6 +13,7 @@ test {
   assert_eq(session.remaining(), 0)
   session.finish()
   assert_eq(cassette.source(), source)
+  assert_true(cassette.compare(cassette).is_empty())
 }
 ```
 

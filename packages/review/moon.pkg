@@ -1,0 +1,12 @@
+import {
+  "black-duck666/mnechoreel/replay",
+  "moonbitlang/core/env",
+  "moonbitlang/x/fs",
+  "moonbitlang/x/sys",
+}
+
+pkgtype(kind: "executable")
+
+options(
+  supported_targets: "wasm+wasm-gc+js+native",
+)

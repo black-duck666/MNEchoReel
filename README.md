@@ -104,6 +104,23 @@ CLI 默认不按头匹配；需要自定义头身份时使用库的 `match_heade
 
 ## 验证与布局
 
+### 审查夹具更新
+
+```sh
+moon run packages/review -- examples/repository.har examples/repository.har
+```
+
+将两个文件路径替换为更新前/后的记录。退出码为 0（回放行为相同）、1（存在变化）、
+2（输入或预算错误）。输出是确定性的 JSON，报告原始记录索引与 added/removed/status/
+headers/body，不回显 URL、正文或头值。记录时间和浏览器元数据不参与行为比较。
+
+库 API `before.compare(after)` 先按请求身份做 LCS 对齐，再比较响应，避免插入一个
+调用导致其后所有响应都被误报。重复请求按原序对齐，平局先移除旧记录；重排表示为
+移除/新增，修改请求身份同样表示为移除/新增。两个 cassette 必须采用相同请求头
+匹配规则。`ignore_response_headers=["Date"]` 仅排除显式列出的响应头，排除清单仍
+写入报告。默认 `max_cells=1000000` 限制 `(旧交互数+1)*(新交互数+1)`，超限拒绝，
+不退化成近似结果。`report.changes()` 返回副本；原始 HAR 保持在各自 cassette 中。
+
 ```sh
 moon fmt --check
 moon fmt --check tools/import_capture.mbtx tools/verify.mbtx

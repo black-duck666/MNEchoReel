@@ -18,9 +18,37 @@ pub fn ReplayError::to_repr(Self) -> @debug.Repr
 pub struct Cassette {
   // private fields
 }
+pub fn Cassette::compare(Self, Self, ignore_response_headers? : Array[String], max_cells? : Int32) -> ChangeReport raise ReplayError
 pub fn Cassette::length(Self) -> Int32
 pub fn Cassette::session(Self, mode? : MatchMode) -> Session
 pub fn Cassette::source(Self) -> String
+
+pub(all) struct Change {
+  kind : ChangeKind
+  before_index : Int32?
+  after_index : Int32?
+} derive(Eq, @debug.Debug)
+pub fn Change::equal(Self, Self) -> Bool
+pub fn Change::not_equal(Self, Self) -> Bool
+pub fn Change::to_repr(Self) -> @debug.Repr
+
+pub(all) enum ChangeKind {
+  Added
+  Removed
+  Status
+  Headers
+  Body
+} derive(Eq, @debug.Debug)
+pub fn ChangeKind::equal(Self, Self) -> Bool
+pub fn ChangeKind::not_equal(Self, Self) -> Bool
+pub fn ChangeKind::to_repr(Self) -> @debug.Repr
+
+pub struct ChangeReport {
+  // private fields
+}
+pub fn ChangeReport::changes(Self) -> Array[Change]
+pub fn ChangeReport::is_empty(Self) -> Bool
+pub fn ChangeReport::render_json(Self) -> String
 
 pub(all) struct Diagnostic {
   code : String
