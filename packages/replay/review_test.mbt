@@ -21,6 +21,8 @@ test "LCS review isolates inserted calls and all aligned response changes" {
   assert_eq(report.changes()[1].before_index, Some(1))
   assert_eq(report.changes()[1].after_index, Some(2))
   assert_false(report.render_json().contains("secret"))
+  assert_true(report.render_json().contains("\"before_index\":1"))
+  assert_true(report.render_json().contains("\"after_index\":2"))
   assert_eq(report.render_json(), a.compare(b).render_json())
   report.changes().clear()
   assert_eq(report.changes().length(), 4)

@@ -86,6 +86,7 @@ pub struct Cassette {
   priv source : String
   priv exchanges : Array[Exchange]
   priv header_names : Array[String]
+  priv adaptations : Array[HeaderChange]
 }
 
 ///|

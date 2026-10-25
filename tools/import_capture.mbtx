@@ -2,6 +2,7 @@
 import {
   "moonbitlang/core/env",
   "moonbitlang/core/json",
+  "moonbitlang/core/string",
   "moonbitlang/core/encoding/utf8",
   "moonbitlang/x@0.5.5/fs",
 }
@@ -9,7 +10,7 @@ import {
 
 fn main raise {
   let args = @env.args()
-  guard args.length() == 6 else { abort("usage: import_capture.mbtx <headers> <body> <url> <ISO-time> <output.har>") }
+  guard args.length() == 6 || args.length() == 7 else { abort("usage: import_capture.mbtx <headers> <decoded-body> <url> <ISO-time> <output.har> [gzip-wire-bytes]") }
   let body = @fs.read_file_to_bytes(args[2])
   let text = @utf8.decode(body, ignore_bom=false)
   let lines = @fs.read_file_to_string(args[1]).split("\r\n").collect()
@@ -20,17 +21,27 @@ fn main raise {
     guard line.split_once(":") is Some((name, value)) else { abort("unexpected response header block") }
     headers.push({ "name": name.to_owned(), "value": value.trim().to_owned() })
   }
+  let gzip = args.length() == 7
+  let wire_bytes = if gzip { @string.parse_int(args[6]) } else { body.length() }
+  if wire_bytes < 0 { abort("wire bytes must be nonnegative") }
+  let codings = headers.filter_map(h => match h {
+    { "name": String(name), "value": String(value), .. } => if name.equal_ignore_ascii_case("content-encoding") { Some(value) } else { None }
+    _ => None
+  })
+  if gzip { guard codings == ["gzip"] else { abort("gzip import requires one Content-Encoding: gzip header") } }
+  else { guard codings.is_empty() || codings == ["identity"] else { abort("encoded capture requires decoded-body import and the measured wire size") } }
+  let accept_encoding = if gzip { "gzip" } else { "identity" }
   let har : Json = { "log": {
     "version": "1.2", "creator": { "name": "EchoReel curl capture import", "version": "1" },
     "entries": [{
       "startedDateTime": args[4], "time": 0,
       "comment": "Actual public API response; timings were not recorded. See provenance.md.",
       "request": { "method": "GET", "url": args[3], "httpVersion": "HTTP/1.1", "cookies": [],
-        "headers": [{ "name": "Accept-Encoding", "value": "identity" }, { "name": "Accept", "value": "application/vnd.github+json" }, { "name": "User-Agent", "value": "EchoReel-fixture" }],
+        "headers": [{ "name": "Accept-Encoding", "value": accept_encoding }, { "name": "Accept", "value": "application/vnd.github+json" }, { "name": "User-Agent", "value": "EchoReel-fixture" }],
         "queryString": [], "headersSize": -1, "bodySize": 0 },
       "response": { "status": 200, "statusText": "OK", "httpVersion": "HTTP/1.1", "cookies": [],
         "headers": headers, "content": { "size": body.length(), "mimeType": "application/json; charset=utf-8", "text": text },
-        "redirectURL": "", "headersSize": -1, "bodySize": body.length() },
+        "redirectURL": "", "headersSize": -1, "bodySize": wire_bytes },
       "cache": {}, "timings": { "send": 0, "wait": 0, "receive": 0 }
     }]
   } }

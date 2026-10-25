@@ -78,11 +78,10 @@ SDK 接入只需将 `@transport.ReplayTransport::new(session)` 作为
 - 正文长度与可用的长度声明一致；HEAD/304 的 Content-Length 可描述原表示。
 - 原始输入字符串完整保存在 `Cassette.source()`，不会输出有损重写后的 HAR。
 
-拒绝缺失正文、params/form 文件重建、multipart、SSE、Upgrade/CONNECT/TRACE、
+默认 Identity profile 拒绝缺失正文、params/form 文件重建、multipart、SSE、Upgrade/CONNECT/TRACE、
 压缩或 Transfer-Encoding、非 UTF-8 charset、非法 URL authority、重复 JSON key、
 未知重放字段及超限输入。不会静默删除头、猜测字节、跳过交互或降级联网。
-响应编码/传输头必须与重建正文一致；首版不能直接接受大部分含压缩头的浏览器 HAR。
-请采集 identity 响应，不要盲目删除头来绕过校验。
+响应编码/传输头必须与重建正文一致。含压缩头的记录需要下述显式适配；不要盲目删除头来绕过校验。
 仅用于元数据的顶层/log 扩展保留在原文中；交互对象内的未知字段保守拒绝。
 接受的浏览器元数据扩展仅 `_initiator`、`_priority`、`_resourceType`。
 Cookie/redirect 元数据不能替代缺失的 Cookie、Set-Cookie、Location 头。
@@ -90,6 +89,25 @@ Cookie/redirect 元数据不能替代缺失的 Cookie、Set-Cookie、Location �
 默认上限：输入 16,777,216 个 UTF-16 code units、10,000 次交互、每条请求或
 响应正文 4,194,304 bytes、JSON 深度 64。`compile_har` 的三个上限可配置；
 这些是接受上限，不是进程内存配额。解析会保留原文与编译结果。
+
+### 显式适配已解码的 HAR 正文
+
+```sh
+moon run packages/check -- examples/repository-gzip.har examples/repository.requests.json --decoded
+```
+
+库入口为 `compile_har(source, body_profile=DecodedContent)`。HAR 的嵌入正文按格式
+约定已经解码，本库不会执行 gzip/br/deflate 解压。显式选择此 profile，表示调用方
+确认记录遵循该约定；不能将压缩 wire bytes 放进 text/base64 冒充解码内容。
+只适配 gzip、br、deflate（含有序组合），移除 Content-Encoding，并将已有的
+Content-Length 改为解码后的 byte 长度，不合成原来不存在的头。
+
+CLI 输出每项修改的 JSON；`cassette.adaptations()` 和 `adaptation_report_json()`
+提供原始 entry/header 索引、原值和新值（移除时为 null）。原始 HAR、正文及其余
+头保持可追溯，重复头顺序保持。要求已知 encoded bodySize，核对原 Content-Length、
+decoded content.size 与可用的 compression 元数据。拒绝 Transfer-Encoding、
+HEAD/204/304 的编码适配、范围/摘要/签名元数据、缺失正文和未知编码。
+它是有限 SDK 测试的头适配，不承诺还原 wire capture 或支持签名 HTTP 消息。
 
 ## 请求清单与命令行
 
@@ -145,8 +163,8 @@ Moon 当前跳过 Wasm-GC 的 async tests，因此该目标验证核心与同步
 当前已实现：完整 HAR 导入、严格请求匹配、独立消费状态、有限正文 transport、
 可执行诊断、状态断言 CLI、真实数据 SDK 示例。
 
-后续按能力推进：显式记录每项修改的 decoded-body 头适配；夹具更新时的实质差异
-审查；更多可以完整还原的请求正文 profile。录制代理、自动脱敏、OpenAPI 校验和
+已补充响应断言、夹具行为审查和带完整修改清单的 decoded-body 头适配。
+后续按能力推进：更多可以完整还原的请求正文 profile。录制代理、自动脱敏、OpenAPI 校验和
 通用 HTTP 客户端不在边界内。详细场景见 [contract](notes/contract.md)，生态定位与
 复用来源见 [sources](notes/sources.md)。
 

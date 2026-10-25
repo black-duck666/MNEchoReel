@@ -7,6 +7,7 @@ pub fn compile_har(
   max_input_units~ : Int32 = 16777216,
   max_entries~ : Int32 = 10000,
   max_body_bytes~ : Int32 = 4194304,
+  body_profile~ : BodyProfile = Identity,
 ) -> Cassette raise ReplayError {
   if max_input_units < 1 || max_entries < 0 || max_body_bytes < 0 {
     fail(
@@ -60,6 +61,7 @@ pub fn compile_har(
     }
   }
   let exchanges = []
+  let adaptations = []
   for i, entry in document.entries() {
     let p = "$.log.entries[\{i}]"
     let request = entry.request()
@@ -132,7 +134,11 @@ pub fn compile_har(
       )
     }
     let headers = response.headers().map(h => (h.name(), h.value()))
-    check_headers(headers, p + ".response.headers")
+    check_headers(
+      headers,
+      p + ".response.headers",
+      allow_content_coding=body_profile == DecodedContent,
+    )
     if !response.cookies().is_empty() &&
       selected(headers, "set-cookie").is_empty() {
       fail(
@@ -206,7 +212,28 @@ pub fn compile_har(
         "response exceeds max_body_bytes",
       )
     }
-    if response.body_size() >= 0 &&
+    let (headers, changes, adapted) = decoded_headers(
+      headers,
+      body_profile,
+      response.body_size(),
+      body.length(),
+      no_body,
+      i,
+    )
+    for change in changes {
+      adaptations.push(change)
+    }
+    if adapted &&
+      content.compression() is Some(saved) &&
+      saved != body.length().to_double() - response.body_size() {
+      fail(
+        "body_length",
+        p + ".response.content.compression",
+        "compression metadata differs from decoded size minus encoded bodySize",
+      )
+    }
+    if !adapted &&
+      response.body_size() >= 0 &&
       response.body_size() != body.length().to_double() {
       fail(
         "body_length",
@@ -242,5 +269,5 @@ pub fn compile_har(
       response: { status: status.to_int(), headers, body, },
     })
   }
-  { source, exchanges, header_names: match_headers.copy(), }
+  { source, exchanges, header_names: match_headers.copy(), adaptations, }
 }

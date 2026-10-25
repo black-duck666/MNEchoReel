@@ -28,7 +28,7 @@
 
 HAR 是应用级记录，不是 wire capture。原始输入字符串完整保存在 Cassette 中；
 不导出重新序列化的 HAR。影响重放的未知字段必须拒绝，记录元数据原样保留。
-首版拒绝压缩、chunked 及非 UTF-8 的响应头语义，防止正文与头不一致；不偷偷
+默认 profile 拒绝压缩、chunked 及非 UTF-8 的响应头语义，防止正文与头不一致；不偷偷
 删除 Content-Encoding、Content-Length 或其他头。重复头的顺序和全部值保留。
 
 库核心面向 wasm、wasm-gc、js、native；文件 CLI 单独声明目标。
@@ -54,7 +54,7 @@ Transport 适配同时提供 buffered send 和有限内存正文的 send_stream�
 ## 后续能力
 
 - 当前切片：完整记录导入、严格匹配、消费状态、诊断、文件及 SDK 接入。
-- 后续：带显式变更清单的 decoded-body 头适配，扩大常见压缩 HAR 的可用范围。
+- 已实现：显式 DecodedContent profile 适配已解码 gzip/br/deflate HAR，逐项报告头修改；不执行解压。
 - 已实现：夹具更新审查，按请求身份对齐并报告响应行为变化；元数据变化不在行为报告内。
 - 后续：按独立 profile 增加可完整还原的请求正文格式；保持拒绝未知语义。
 

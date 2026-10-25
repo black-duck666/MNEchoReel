@@ -101,6 +101,7 @@ fn token(value : String) -> Bool {
 fn check_headers(
   headers : Array[(String, String)],
   path : String,
+  allow_content_coding~ : Bool = false,
 ) -> Unit raise ReplayError {
   for (name, value) in headers {
     if !token(name) ||
@@ -111,6 +112,7 @@ fn check_headers(
     }
     if name.equal_ignore_ascii_case("transfer-encoding") ||
       (
+        !allow_content_coding &&
         name.equal_ignore_ascii_case("content-encoding") &&
         !value.equal_ignore_ascii_case("identity")
       ) {

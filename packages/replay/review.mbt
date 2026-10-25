@@ -59,8 +59,14 @@ pub fn ChangeReport::render_json(self : ChangeReport) -> String {
       }
       let row : Json = {
         "kind": kind,
-        "before_index": c.before_index,
-        "after_index": c.after_index,
+        "before_index": match c.before_index {
+          Some(i) => Json(i)
+          None => Json::null()
+        },
+        "after_index": match c.after_index {
+          Some(i) => Json(i)
+          None => Json::null()
+        },
       }
       row
     }),

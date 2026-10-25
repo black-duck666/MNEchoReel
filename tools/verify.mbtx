@@ -19,6 +19,7 @@ async fn main {
     ["test", "--target", target, "--deny-warn"],
     ["run", "packages/check", "--target", target, "--deny-warn", "--", "examples/repository.har", "examples/repository.requests.json"],
     ["run", "packages/review", "--target", target, "--deny-warn", "--", "examples/repository.har", "examples/repository.har"],
+    ["run", "packages/check", "--target", target, "--deny-warn", "--", "examples/repository-gzip.har", "examples/repository.requests.json", "--decoded"],
   ] {
     @shell.Cmd("moon", command, stdout=Inherit, stderr=Inherit).run()
   }
