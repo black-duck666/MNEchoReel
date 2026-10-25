@@ -1,0 +1,24 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "black-duck666/mnechoreel/transport"
+
+import {
+  "black-duck666/mnechoreel/replay",
+  "gaato/http",
+}
+
+// Values
+
+// Errors
+
+// Types and methods
+pub struct ReplayTransport {
+  // private fields
+}
+pub fn ReplayTransport::new(@replay.Session) -> Self
+pub async fn ReplayTransport::send(Self, @http.Request) -> @http.Response raise @http.HttpError
+pub async fn ReplayTransport::send_stream(Self, @http.Request) -> (@http.ResponseHead, &@http.BodyStream) raise @http.HttpError
+pub impl @http.Transport for ReplayTransport
+
+// Type aliases
+
+// Traits

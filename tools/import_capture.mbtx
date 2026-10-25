@@ -1,0 +1,39 @@
+----
+import {
+  "moonbitlang/core/env",
+  "moonbitlang/core/json",
+  "moonbitlang/core/encoding/utf8",
+  "moonbitlang/x@0.5.5/fs",
+}
+----
+
+fn main raise {
+  let args = @env.args()
+  guard args.length() == 6 else { abort("usage: import_capture.mbtx <headers> <body> <url> <ISO-time> <output.har>") }
+  let body = @fs.read_file_to_bytes(args[2])
+  let text = @utf8.decode(body, ignore_bom=false)
+  let lines = @fs.read_file_to_string(args[1]).split("\r\n").collect()
+  guard lines[0] == "HTTP/1.1 200 OK" else { abort("requires one direct HTTP/1.1 200 response; redirects/proxy blocks need manual review") }
+  let headers : Array[Json] = []
+  for line in lines.iter().drop(1) {
+    if line.is_empty() { continue }
+    guard line.split_once(":") is Some((name, value)) else { abort("unexpected response header block") }
+    headers.push({ "name": name.to_owned(), "value": value.trim().to_owned() })
+  }
+  let har : Json = { "log": {
+    "version": "1.2", "creator": { "name": "EchoReel curl capture import", "version": "1" },
+    "entries": [{
+      "startedDateTime": args[4], "time": 0,
+      "comment": "Actual public API response; timings were not recorded. See provenance.md.",
+      "request": { "method": "GET", "url": args[3], "httpVersion": "HTTP/1.1", "cookies": [],
+        "headers": [{ "name": "Accept-Encoding", "value": "identity" }, { "name": "Accept", "value": "application/vnd.github+json" }, { "name": "User-Agent", "value": "EchoReel-fixture" }],
+        "queryString": [], "headersSize": -1, "bodySize": 0 },
+      "response": { "status": 200, "statusText": "OK", "httpVersion": "HTTP/1.1", "cookies": [],
+        "headers": headers, "content": { "size": body.length(), "mimeType": "application/json; charset=utf-8", "text": text },
+        "redirectURL": "", "headersSize": -1, "bodySize": body.length() },
+      "cache": {}, "timings": { "send": 0, "wait": 0, "receive": 0 }
+    }]
+  } }
+  @fs.write_string_to_file(args[5], har.stringify(indent=2) + "\n")
+  println("imported \{body.length()} exact response bytes")
+}

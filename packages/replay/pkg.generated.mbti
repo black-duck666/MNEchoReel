@@ -1,0 +1,71 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "black-duck666/mnechoreel/replay"
+
+import {
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn compile_har(String, match_headers? : Array[String], max_input_units? : Int32, max_entries? : Int32, max_body_bytes? : Int32) -> Cassette raise ReplayError
+
+// Errors
+pub(all) suberror ReplayError {
+  ReplayError(Diagnostic)
+} derive(@debug.Debug)
+pub fn ReplayError::to_repr(Self) -> @debug.Repr
+
+// Types and methods
+pub struct Cassette {
+  // private fields
+}
+pub fn Cassette::length(Self) -> Int32
+pub fn Cassette::session(Self, mode? : MatchMode) -> Session
+pub fn Cassette::source(Self) -> String
+
+pub(all) struct Diagnostic {
+  code : String
+  path : String
+  message : String
+} derive(Eq, @debug.Debug)
+pub fn Diagnostic::equal(Self, Self) -> Bool
+pub fn Diagnostic::format(Self) -> String
+pub fn Diagnostic::not_equal(Self, Self) -> Bool
+pub fn Diagnostic::to_repr(Self) -> @debug.Repr
+
+pub(all) enum MatchMode {
+  Ordered
+  ByRequest
+} derive(Eq, @debug.Debug)
+pub fn MatchMode::equal(Self, Self) -> Bool
+pub fn MatchMode::not_equal(Self, Self) -> Bool
+pub fn MatchMode::to_repr(Self) -> @debug.Repr
+
+pub struct Request {
+  // private fields
+} derive(Eq, @debug.Debug)
+pub fn Request::equal(Self, Self) -> Bool
+pub fn Request::new(String, String, headers? : Array[(String, String)], body? : Bytes) -> Self
+pub fn Request::not_equal(Self, Self) -> Bool
+pub fn Request::to_repr(Self) -> @debug.Repr
+
+pub struct Response {
+  // private fields
+} derive(Eq, @debug.Debug)
+pub fn Response::body(Self) -> Bytes
+pub fn Response::equal(Self, Self) -> Bool
+pub fn Response::headers(Self) -> Array[(String, String)]
+pub fn Response::not_equal(Self, Self) -> Bool
+pub fn Response::status(Self) -> Int32
+pub fn Response::to_repr(Self) -> @debug.Repr
+
+pub struct Session {
+  // private fields
+}
+pub fn Session::finish(Self) -> Unit raise ReplayError
+pub fn Session::remaining(Self) -> Int32
+pub fn Session::reset(Self) -> Unit
+pub fn Session::take(Self, Request) -> Response raise ReplayError
+
+// Type aliases
+
+// Traits

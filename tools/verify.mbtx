@@ -1,0 +1,41 @@
+----
+import {
+  "moonbitlang/async@0.22.5",
+  "moonbitlang/async@0.22.5/shell",
+  "moonbitlang/core/env",
+  "moonbitlang/x@0.5.5/fs",
+}
+----
+
+async fn main {
+  let args = @env.args()
+  guard args.length() == 2 && ["wasm", "wasm-gc", "js", "native"].contains(args[1]) else {
+    abort("usage: moon run tools/verify.mbtx <wasm|wasm-gc|js|native>")
+  }
+  let target = args[1]
+  for command in [
+    ["check", "--target", target, "--deny-warn"],
+    ["test", "--target", target, "--deny-warn"],
+    ["run", "packages/check", "--target", target, "--deny-warn", "--", "examples/repository.har", "examples/repository.requests.json"],
+  ] {
+    @shell.Cmd("moon", command, stdout=Inherit, stderr=Inherit).run()
+  }
+  if target != "wasm-gc" {
+    @shell.Cmd("moon", ["run", "packages/demo", "--target", target, "--deny-warn", "--", "examples/repository.har"], stdout=Inherit, stderr=Inherit).run()
+  }
+  let temporary = "_build/echoreel-negative-manifest.json"
+  for (plan, expected) in [
+    ("[{\"method\":\"GET\",\"url\":\"https://wrong.invalid/\"}]", "request_mismatch"),
+    ("[{\"method\":\"GET\",\"url\":\"https://api.github.com/repos/moonbitlang/core\",\"expect_status\":404}]", "status_mismatch"),
+    ("[{\"method\":\"GET\",\"url\":\"https://api.github.com/repos/moonbitlang/core\",\"expect_stauts\":200}]", "manifest_error"),
+    ("[{\"method\":\"GET\",\"url\":\"https://api.github.com/repos/moonbitlang/core\",\"body\":123}]", "manifest_error"),
+    ("[]", "unconsumed"),
+  ] {
+    @fs.write_string_to_file(temporary, plan)
+    let output = @shell.Cmd("moon", ["run", "packages/check", "--target", target, "--", "examples/repository.har", temporary]).output()
+    assert_true(output.exit_code() != 0)
+    assert_true((output.stdout() + output.stderr()).contains(expected))
+  }
+  @fs.remove_file(temporary)
+  println("verified \{target}: unit tests, real capture, SDK where supported, and five CLI rejection paths")
+}
