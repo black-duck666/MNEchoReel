@@ -54,3 +54,9 @@ Mooncakes 文档索引可能落后；实现固定版本并以实际下载接口�
 校验（Apache-2.0），没有复制 FakeTransport 的 drain 或 stream 实现。响应分块和请求
 预算逻辑、测试及演示均为本项目编写；upload_demo 的派生 POST 使用既有真实响应数据，
 来源与许可限制仍见 examples/provenance.md，不声称该合成请求是实际网络录制。
+
+源码采用与分发配置参考当前工具链实际命令及官方
+[本地模块工作区说明](https://tour.moonbitlang.com/basics/module-and-package/index.html)、
+[模块打包与 .moonignore 说明](https://docs.moonbitlang.com/en/stable/toolchain/moon/module.html)。
+未复制其示例代码或测试；源码包由 moon package 生成，验证通过系统 tar.exe/unzip
+解压自建归档，不移植 ZIP 编解码器。后者是构建环境工具，不是库的运行期依赖。

@@ -1,0 +1,6 @@
+# Keep development state out of distributable source archives, at every level.
+.git/
+.mooncakes/
+_build/
+target/
+!/.moonignore

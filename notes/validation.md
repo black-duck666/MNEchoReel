@@ -24,7 +24,7 @@ type checking, on Linux, macOS and Windows.
 | Wasm-GC | 93 passed | Identity/gzip HAR CLI, review, branch demo and rejection plans passed; eleven async tests skipped by Moon |
 | JavaScript / Node.js | 104 passed | Identity/gzip HAR CLI, review, branch demo, buffered/streamed SDK and rejection plans passed |
 
-`moon fmt --check`, explicit formatting checks for both `.mbtx` tools, and
+`moon fmt --check`, explicit formatting checks for all three `.mbtx` tools, and
 `moon info --target all` also passed. Generated interfaces are committed.
 
 Local Windows native execution is unavailable because this machine has no
@@ -99,7 +99,8 @@ copied outcomes, stable JSON/XML, exact XML bytes and repeated markup escaping.
 A regression test also checks every occurrence of repeated JSON pointer escapes.
 CLI tests create success/failure JUnit artifacts, preserve existing output bytes,
 reject malformed flags, and create no report for preflight errors. Linux CI runs
-xmllint on both generated XML files; every runtime job uploads the two artifacts.
+xmllint on the success/failure XML files; every runtime job retains them in its
+report bundle, alongside the suite/shard and source-distribution evidence.
 The failure artifact is an intentional negative test, not a failed CI job.
 
 Prepared request manifests run against both real captures on every target.
@@ -187,3 +188,11 @@ the real capture, exported contracts and suite output on all four targets. The
 SDK executable uses the public Transport trait, request budgets and response
 chunks on Wasm/JS and native. CI checks its formatting/interfaces separately and
 executes it in every runtime job; root unit-test counts above are unchanged.
+
+Source distribution verification invokes moon package, checks required release
+files and safe relative paths, excludes development directories through
+.moonignore, and compares every extracted file byte-for-byte with its source.
+It then rebuilds/runs the consumer from inside a fresh extracted tree on the
+selected target. Windows uses tar.exe; Linux/macOS use unzip. CI retains the ZIP
+and per-target JSON evidence. Archive metadata/compressed bytes are not claimed
+deterministic; this verifies file contents and adoption, not a registry release.

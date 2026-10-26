@@ -1,0 +1,88 @@
+----
+import {
+  "moonbitlang/async@0.22.5",
+  "moonbitlang/async@0.22.5/shell",
+  "moonbitlang/core/env",
+  "moonbitlang/core/json",
+  "moonbitlang/x@0.5.5/fs",
+}
+----
+
+// Read only this repository's formatted quoted metadata, not arbitrary Moon module syntax.
+fn manifest_string(source : String, name : String) -> String raise {
+  let values = source.split("\n").filter_map(line => {
+    match line.split_once("=") {
+      Some((key, value)) if key.trim() == name => Some(value.trim().to_owned())
+      _ => None
+    }
+  }).collect()
+  guard values.length() == 1 && @json.parse(values[0]) is String(value) else {
+    abort("expected one quoted name/version in the formatted root moon.mod")
+  }
+  value
+}
+
+async fn main {
+  let args = @env.args()
+  guard args.length() == 2 && ["wasm", "wasm-gc", "js", "native"].contains(args[1]) else {
+    abort("usage: moon run tools/verify_distribution.mbtx <wasm|wasm-gc|js|native>")
+  }
+  let target = args[1]
+  let manifest = @fs.read_file_to_string("moon.mod")
+  let name = manifest_string(manifest, "name")
+  let version = manifest_string(manifest, "version")
+  guard name == "black-duck666/mnechoreel" && !version.is_empty() && version.length() <= 64 && version.iter().all(c => c.is_ascii_alphabetic() || c.is_ascii_digit() || c == '.' || c == '-' || c == '+') else {
+    abort("unexpected module identity or unsafe archive version")
+  }
+  @shell.Cmd("moon", ["package"], stdout=Inherit, stderr=Inherit).run()
+  let archive = "_build/publish/" + name.replace_all(old="/", new="-") + "-" + version + ".zip"
+  let windows = @env.get_env_var("OS") == Some("Windows_NT")
+  let listing = if windows {
+    @shell.Cmd("tar.exe", ["-tf", archive]).output()
+  } else {
+    @shell.Cmd("unzip", ["-Z1", archive]).output()
+  }
+  listing.check()
+  let files : Array[String] = []
+  for line in listing.stdout().split("\n") {
+    let path = line.trim().to_owned().replace_all(old="\\", new="/")
+    if path.is_empty() { continue }
+    let directory = path.has_suffix("/")
+    let plain = if directory { path[:path.length() - 1].to_owned() } else { path }
+    guard !plain.has_prefix("/") && !plain.contains(":") && plain.split("/").all(part => !["", ".", "..", ".git", ".mooncakes", "_build", "target"].contains(part.to_owned())) else {
+      abort("archive contains an unsafe path or development state; inspect moon package --list")
+    }
+    if !directory {
+      guard !files.contains(plain) else { abort("archive repeats a file path") }
+      files.push(plain)
+    }
+  }
+  for required in ["moon.mod", ".moonignore", "LICENSE", "README.md", "CHANGELOG.md", "notes/initial-release.md", "notes/sources.md", "notes/validation.md", "examples/provenance.md", "examples/repository.har", "examples/repository.requests.json", "examples/consumer/moon.mod", "examples/consumer/moon.work", "packages/replay/pkg.generated.mbti", "packages/plan/pkg.generated.mbti", "packages/transport/pkg.generated.mbti"] {
+    guard files.contains(required) else { abort("source archive is missing a required adoption/release file") }
+  }
+  // Use a fresh ignored directory on every invocation, never delete or overwrite another checkout.
+  let mut destination = ""
+  for i in 0..<10000 {
+    let candidate = "_build/distribution-\{target}-\{i}"
+    if !@fs.path_exists(candidate) { destination = candidate; break }
+  }
+  guard !destination.is_empty() else { abort("no fresh build directory; run moon clean before retrying") }
+  @fs.create_dir(destination)
+  if windows {
+    @shell.Cmd("tar.exe", ["-xf", archive, "-C", destination], stdout=Inherit, stderr=Inherit).run()
+  } else {
+    @shell.Cmd("unzip", ["-q", archive, "-d", destination], stdout=Inherit, stderr=Inherit).run()
+  }
+  for file in files {
+    assert_eq(@fs.read_file_to_bytes(destination + "/" + file), @fs.read_file_to_bytes(file))
+  }
+  let consumer = destination + "/examples/consumer"
+  @shell.Cmd("moon", ["-C", consumer, "check", "--target", target, "--deny-warn"], stdout=Inherit, stderr=Inherit).run()
+  @shell.Cmd("moon", ["-C", consumer, "run", ".", "--target", target, "--deny-warn", "--", "../repository.har", "../repository.requests.json"], stdout=Inherit, stderr=Inherit).run()
+  if target != "wasm-gc" {
+    @shell.Cmd("moon", ["-C", consumer, "run", "sdk", "--target", target, "--deny-warn", "--", "../repository.har"], stdout=Inherit, stderr=Inherit).run()
+  }
+  let report : Json = { "schema": 1, "module": name, "version": version, "target": target, "archive": archive, "archive_bytes": @fs.read_file_to_bytes(archive).length(), "verified_files": files.length(), "consumer_passed": true, "sdk_executed": target != "wasm-gc" }
+  @fs.write_string_to_file("_build/echoreel-distribution-\{target}.json", report.stringify() + "\n")
+  println("verified source distribution: \{files.length()} exact files; \{target} external consumer passed")
+}

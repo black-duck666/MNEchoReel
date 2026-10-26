@@ -15,7 +15,7 @@ jobs:
       - run: moon update
       - run: moon fmt --check
       - run: moon -C examples/consumer fmt --check
-      - run: moon fmt --check tools/import_capture.mbtx tools/verify.mbtx
+      - run: moon fmt --check tools/import_capture.mbtx tools/verify.mbtx tools/verify_distribution.mbtx
       - run: moon info --target all
       - run: moon -C examples/consumer info --target all
       - run: git diff --exit-code
@@ -42,6 +42,7 @@ jobs:
       - run: moon version --all
       - run: moon update
       - run: moon run tools/verify.mbtx ${{ matrix.target }}
+      - run: moon run tools/verify_distribution.mbtx ${{ matrix.target }}
       - if: runner.os == 'Linux'
         run: sudo apt-get update
       - if: runner.os == 'Linux'
@@ -59,4 +60,6 @@ jobs:
             _build/echoreel-suite-${{ matrix.target }}-failure.xml
             _build/echoreel-shard-${{ matrix.target }}-*.xml
             _build/echoreel-shard-${{ matrix.target }}-*.json
+            _build/echoreel-distribution-${{ matrix.target }}.json
+            _build/publish/*.zip
           if-no-files-found: ignore

@@ -5,6 +5,9 @@
 向应用注入 replay transport，断言业务结果，并检查每次预期调用都已发生。
 测试无需 API 密钥，也不会在未命中时联网。
 
+本轮以 0.1.0 源码初版收口。完整验收步骤、分发方式和范围边界见
+[初版交付](notes/initial-release.md)，已实现能力见 [CHANGELOG](CHANGELOG.md)。
+
 ## 运行真实示例
 
 需要当前稳定版 [MoonBit](https://www.moonbitlang.com/download/)。
@@ -436,12 +439,13 @@ CLI 的 --json-pointer 与 --ignore-header 均可重复；压缩记录使用 --d
 
 ```sh
 moon fmt --check
-moon fmt --check tools/import_capture.mbtx tools/verify.mbtx
+moon fmt --check tools/import_capture.mbtx tools/verify.mbtx tools/verify_distribution.mbtx
 moon info --target all
 moon run tools/verify.mbtx wasm
 moon run tools/verify.mbtx wasm-gc
 moon run tools/verify.mbtx js
 moon run tools/verify.mbtx native
+moon run tools/verify_distribution.mbtx wasm
 ```
 
 `packages/replay` 持有记录编译、匹配、消费与诊断；`packages/transport` 是 SDK
@@ -455,13 +459,13 @@ Moon 当前跳过 Wasm-GC 的 async tests，因此该目标验证核心与同步
 
 ## 能力边界与后续
 
-当前已实现：完整 HAR 导入、严格请求匹配、独立消费状态、有限正文 transport、
-可执行诊断、状态断言 CLI、真实数据 SDK 示例。
+当前已完成从完整 HAR 导入、精确回放、原子断言与恢复，到契约生成、夹具审查、
+独立套件及 JSON/JUnit 报告的完整路径。SDK 适配支持可控响应分块和有界请求源；
+独立消费模块验证公开 API，源码 ZIP 解压后重新构建消费模块。
 
-已补充精确/JSON 字段响应断言、夹具行为审查、带修改审计的 decoded-body 头适配、
-分支与多调用回滚、可复用原子计划、交错重试序列、消费快照及 JSON/JUnit CI 报告。
-后续按能力推进：更多可以完整还原的请求正文 profile。录制代理、自动脱敏、OpenAPI 校验和
-通用 HTTP 客户端不在边界内。详细场景见 [contract](notes/contract.md)，生态定位与
-复用来源见 [sources](notes/sources.md)。
+当前交付 Git 源码及可验证的源码包，尚未发布 Mooncakes。CI 会保存 ZIP 和分发验证摘要；
+脚本不进行发布。后续依据采用反馈增加可完整还原的请求正文 profile。录制代理、自动脱敏、
+OpenAPI、通用 HTTP 客户端和真实网络调度模拟不在本轮范围。
+详细场景见 [contract](notes/contract.md)，生态定位与复用来源见 [sources](notes/sources.md)。
 
 MIT，见 [LICENSE](LICENSE)。
