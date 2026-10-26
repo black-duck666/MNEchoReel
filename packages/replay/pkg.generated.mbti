@@ -30,7 +30,7 @@ pub fn Cassette::adaptation_report_json(Self) -> String
 pub fn Cassette::adaptations(Self) -> Array[HeaderChange]
 pub fn Cassette::compare(Self, Self, ignore_response_headers? : Array[String], max_cells? : Int32, json_pointers? : Array[String]) -> ChangeReport raise ReplayError
 pub fn Cassette::length(Self) -> Int32
-pub fn Cassette::request_plan(Self, assert_bodies? : Bool, max_input_units? : Int32) -> String raise ReplayError
+pub fn Cassette::request_plan(Self, assert_bodies? : Bool, assert_headers? : Array[String], max_input_units? : Int32) -> String raise ReplayError
 pub fn Cassette::session(Self, mode? : MatchMode) -> Session
 pub fn Cassette::source(Self) -> String
 

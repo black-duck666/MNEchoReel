@@ -4,10 +4,28 @@
 pub fn Cassette::request_plan(
   self : Cassette,
   assert_bodies~ : Bool = false,
+  assert_headers~ : Array[String] = [],
   max_input_units~ : Int32 = 4194304,
 ) -> String raise ReplayError {
   if max_input_units < 1 {
     fail("invalid_limit", "$plan", "max_input_units must be positive")
+  }
+  if assert_headers.length() > 256 {
+    fail(
+      "invalid_plan_option", "$plan.assert_headers", "at most 256 unique response header names are supported",
+    )
+  }
+  let names : Array[String] = []
+  for i, name in assert_headers {
+    if !token(name) ||
+      names.iter().any(previous => previous.equal_ignore_ascii_case(name)) {
+      fail(
+        "invalid_plan_option",
+        "$plan.assert_headers[\{i}]",
+        "response header names must be unique HTTP tokens, ignoring ASCII case",
+      )
+    }
+    names.push(name)
   }
   let steps = self.exchanges.mapi((i, exchange) => {
     let request = exchange.request
@@ -37,14 +55,26 @@ pub fn Cassette::request_plan(
       "body": text,
       "expect_status": exchange.response.status,
     }
-    if assert_bodies {
+    if assert_bodies || !names.is_empty() {
       guard step is Object(fields) else {
         abort("manifest construction invariant")
       }
-      fields.set(
-        "expect_body_base64",
-        Json(@base64.encode(exchange.response.body)),
-      )
+      if assert_bodies {
+        fields.set(
+          "expect_body_base64",
+          Json(@base64.encode(exchange.response.body)),
+        )
+      }
+      if !names.is_empty() {
+        let assertions = names.map(name => {
+          let assertion : Json = {
+            "name": name,
+            "values": selected(exchange.response.headers, name),
+          }
+          assertion
+        })
+        fields.set("expect_headers", Json(assertions))
+      }
     }
     step
   })

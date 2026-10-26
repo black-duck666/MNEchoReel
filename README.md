@@ -172,6 +172,20 @@ moon run packages/prepare -- examples/repository.har requests.generated.json --a
 moon run packages/check -- examples/repository.har requests.generated.json
 ```
 
+要锁定响应的媒体类型或缓存契约，可重复指定响应头：
+
+```sh
+moon run packages/prepare -- examples/repository.har headers.generated.json --assert-header Content-Type --assert-header X-Optional
+moon run packages/check -- examples/repository.har headers.generated.json
+```
+
+`--assert-header NAME` 从每个响应生成 `expect_headers`；名称匹配忽略 ASCII 大小写，
+值与重复值顺序保持精确，录制中没有该头则生成空数组断言其缺失。未选择的响应头不受约束。
+库使用 `request_plan(assert_headers=["Content-Type", "X-Optional"])`；最多 256 个唯一 HTTP
+token 名称，重复名称（忽略大小写）、非法名称和超限均拒绝，空记录也预检。
+可与 `--assert-bodies`、`--decoded` 组合；decoded 断言使用适配后真正回放的头，完整修改
+审计仍保留。摘要额外记录所选头名，不回显响应值；不指定时保持原生成结果和摘要格式。
+
 输出文件需尚不存在，父目录需已存在。prepare 保留方法、完整 URL、全部有序请求头、
 精确 UTF-8 请求正文，并为每步加入状态断言；--assert-bodies 额外加入 canonical base64
 响应正文断言。生成后可改成业务字段断言。文件包含原记录的 HTTP 数据，请只使用已净化

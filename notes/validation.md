@@ -1,6 +1,6 @@
 # Validation record
 
-Tested 2026-10-25 on Windows with stable MoonBit:
+Tested 2026-10-26 on Windows with stable MoonBit:
 
 ```text
 moon 0.1.20261023 (3778465 2026-10-23)
@@ -10,7 +10,7 @@ moonrun 0.1.20261023 (3778465 2026-10-23)
 
 The three binaries match the SHA-256 values in the official stable
 [Windows checksum manifest](https://cli.moonbitlang.com/binaries/latest/moonbit-windows-x86_64.sha256)
-retrieved on the test date. `moon.mod` / `moon.pkg` are parsed and formatted by
+retrieved on 2026-10-25. `moon.mod` / `moon.pkg` are parsed and formatted by
 that toolchain, including `pkgtype(kind: "executable")`.
 
 `moon check --target all --deny-warn` passed. Portable runtime verification
@@ -20,9 +20,9 @@ type checking, on Linux, macOS and Windows.
 
 | Local runtime | Unit tests | End-to-end result |
 | --- | --- | --- |
-| Wasm | 81 passed | Identity/gzip HAR CLI, review, branch demo, SDK and rejection plans passed |
-| Wasm-GC | 76 passed | Identity/gzip HAR CLI, review, branch demo and rejection plans passed; five async tests skipped by Moon |
-| JavaScript / Node.js | 81 passed | Identity/gzip HAR CLI, review, branch demo, SDK and rejection plans passed |
+| Wasm | 85 passed | Identity/gzip HAR CLI, review, branch demo, SDK and rejection plans passed |
+| Wasm-GC | 80 passed | Identity/gzip HAR CLI, review, branch demo and rejection plans passed; five async tests skipped by Moon |
+| JavaScript / Node.js | 85 passed | Identity/gzip HAR CLI, review, branch demo, SDK and rejection plans passed |
 
 `moon fmt --check`, explicit formatting checks for both `.mbtx` tools, and
 `moon info --target all` also passed. Generated interfaces are committed.
@@ -148,3 +148,10 @@ excluded missing files do not affect selected cases. CLI tests cover preview,
 unknown/duplicate names, malformed shards and two real-fixture shard reports.
 Linux CI validates both populated and empty shard XML, and uploads JSON scope
 sidecars alongside them; default suite output remains covered by existing E2E.
+
+Response-header plan generation covers duplicate order, case-insensitive name
+selection, absent names, deterministic output, unchanged defaults, combined body
+assertions, inclusive output limits and preflight on empty inputs. Generated plans
+replay through the public parser and roll back after changed header contracts.
+Real identity/decoded captures exercise --assert-header with existing and absent
+names; invalid CLI options leave no output file. No external code or tests copied.

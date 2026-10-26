@@ -40,10 +40,17 @@ async fn main {
     if @fs.path_exists(prepared_path) { @fs.remove_file(prepared_path) }
     let command = ["run", "packages/prepare", "--target", target, "--", capture, prepared_path]
     command.append(flags)
+    command.append(["--assert-header", "Content-Type", "--assert-header", "X-EchoReel-Absent", "--assert-header", "Content-Encoding"])
     let prepared = @shell.Cmd("moon", command).output()
     prepared.check()
     assert_eq(report_field(@json.parse(prepared.stdout()), "steps"), Json(1))
+    assert_eq(report_field(@json.parse(prepared.stdout()), "assert_headers"), Json(["Content-Type", "X-EchoReel-Absent", "Content-Encoding"]))
     let original = @fs.read_file_to_string(prepared_path)
+    guard @json.parse(original) is Array(steps) else { abort("generated steps missing") }
+    guard report_field(steps[0], "expect_headers") is Array(headers) else { abort("generated header assertions missing") }
+    assert_eq(headers.length(), 3)
+    assert_eq(report_field(headers[1], "values"), Json::array([]))
+    assert_eq(report_field(headers[2], "values"), Json::array([]))
     let replay = ["run", "packages/check", "--target", target, "--", capture, prepared_path]
     if flags.contains("--decoded") { replay.push("--decoded") }
     @shell.Cmd("moon", replay).run()
@@ -53,6 +60,14 @@ async fn main {
     assert_eq(@fs.read_file_to_string(prepared_path), original)
   }
   @fs.remove_file(prepared_path)
+  for flags in [["--assert-header"], ["--assert-header", "Bad Header"], ["--assert-header", "Content-Type", "--assert-header", "content-type"]] {
+    let command = ["run", "packages/prepare", "--target", target, "--", "examples/repository.har", prepared_path]
+    command.append(flags)
+    let rejected = @shell.Cmd("moon", command).output()
+    assert_eq(rejected.exit_code(), 2)
+    assert_false(@fs.path_exists(prepared_path))
+    assert_false(rejected.stdout().contains("Bad Header"))
+  }
   for command in [
     ["check", "--target", target, "--deny-warn"],
     ["test", "--target", target, "--deny-warn"],

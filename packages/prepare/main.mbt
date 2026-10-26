@@ -17,20 +17,32 @@ fn run(args : Array[String]) -> Unit raise {
     raise PrepareError({
       code: "usage_error",
       path: "$args",
-      message: "usage: moon run packages/prepare -- <recording.har> <NEW_PLAN.json> [--decoded] [--assert-bodies]",
+      message: "usage: moon run packages/prepare -- <recording.har> <NEW_PLAN.json> [--decoded] [--assert-bodies] [--assert-header NAME]",
     })
   }
   let mut decoded = false
   let mut assert_bodies = false
-  for flag in args.iter().drop(ARG_START + 2) {
+  let assert_headers : Array[String] = []
+  let flags = args.iter().drop(ARG_START + 2)
+  for flag in flags {
     match flag {
       "--decoded" if !decoded => decoded = true
       "--assert-bodies" if !assert_bodies => assert_bodies = true
+      "--assert-header" => {
+        guard flags.next() is Some(name) && !name.is_empty() else {
+          raise PrepareError({
+            code: "usage_error",
+            path: "$args",
+            message: "--assert-header requires a header name",
+          })
+        }
+        assert_headers.push(name)
+      }
       _ =>
         raise PrepareError({
           code: "usage_error",
           path: "$args",
-          message: "unknown or repeated option; expected --decoded and/or --assert-bodies",
+          message: "unknown or repeated option; expected --decoded, --assert-bodies or --assert-header NAME",
         })
     }
   }
@@ -46,7 +58,7 @@ fn run(args : Array[String]) -> Unit raise {
     @fs.read_file_to_string(args[ARG_START]),
     body_profile=if decoded { DecodedContent } else { Identity },
   )
-  let plan = cassette.request_plan(assert_bodies~)
+  let plan = cassette.request_plan(assert_bodies~, assert_headers~)
   @fs.write_string_to_file(output, plan) catch {
     _ =>
       raise PrepareError({
@@ -60,6 +72,10 @@ fn run(args : Array[String]) -> Unit raise {
     "steps": cassette.length(),
     "assert_bodies": assert_bodies,
     "adaptations": @json.parse(cassette.adaptation_report_json()),
+  }
+  if !assert_headers.is_empty() {
+    guard summary is Object(fields) else { abort("summary invariant") }
+    fields.set("assert_headers", Json(assert_headers))
   }
   println(summary.stringify())
 }
