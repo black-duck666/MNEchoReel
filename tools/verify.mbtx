@@ -41,16 +41,23 @@ async fn main {
     let command = ["run", "packages/prepare", "--target", target, "--", capture, prepared_path]
     command.append(flags)
     command.append(["--assert-header", "Content-Type", "--assert-header", "X-EchoReel-Absent", "--assert-header", "Content-Encoding"])
+    command.append(["--assert-json", "/full_name", "--assert-json", "/owner/login"])
     let prepared = @shell.Cmd("moon", command).output()
     prepared.check()
     assert_eq(report_field(@json.parse(prepared.stdout()), "steps"), Json(1))
     assert_eq(report_field(@json.parse(prepared.stdout()), "assert_headers"), Json(["Content-Type", "X-EchoReel-Absent", "Content-Encoding"]))
+    assert_eq(report_field(@json.parse(prepared.stdout()), "assert_json"), Json(["/full_name", "/owner/login"]))
     let original = @fs.read_file_to_string(prepared_path)
     guard @json.parse(original) is Array(steps) else { abort("generated steps missing") }
     guard report_field(steps[0], "expect_headers") is Array(headers) else { abort("generated header assertions missing") }
     assert_eq(headers.length(), 3)
     assert_eq(report_field(headers[1], "values"), Json::array([]))
     assert_eq(report_field(headers[2], "values"), Json::array([]))
+    guard report_field(steps[0], "expect_json") is Array(json_checks) else { abort("JSON assertions missing") }
+    assert_eq(json_checks.length(), 2)
+    assert_eq(report_field(json_checks[0], "pointer"), Json("/full_name"))
+    assert_eq(report_field(json_checks[0], "value"), Json("moonbitlang/core"))
+    assert_false(prepared.stdout().contains("moonbitlang/core"))
     let replay = ["run", "packages/check", "--target", target, "--", capture, prepared_path]
     if flags.contains("--decoded") { replay.push("--decoded") }
     @shell.Cmd("moon", replay).run()
@@ -60,6 +67,11 @@ async fn main {
     assert_eq(@fs.read_file_to_string(prepared_path), original)
   }
   @fs.remove_file(prepared_path)
+  let root_contract = @shell.Cmd("moon", ["run", "packages/prepare", "--target", target, "--", "examples/repository.har", prepared_path, "--assert-json", ""]).output()
+  root_contract.check()
+  assert_eq(report_field(@json.parse(root_contract.stdout()), "assert_json"), Json([""]))
+  @shell.Cmd("moon", ["run", "packages/check", "--target", target, "--", "examples/repository.har", prepared_path]).run()
+  @fs.remove_file(prepared_path)
   for flags in [["--assert-header"], ["--assert-header", "Bad Header"], ["--assert-header", "Content-Type", "--assert-header", "content-type"]] {
     let command = ["run", "packages/prepare", "--target", target, "--", "examples/repository.har", prepared_path]
     command.append(flags)
@@ -67,6 +79,19 @@ async fn main {
     assert_eq(rejected.exit_code(), 2)
     assert_false(@fs.path_exists(prepared_path))
     assert_false(rejected.stdout().contains("Bad Header"))
+  }
+  for (flags, code) in [
+    (["--assert-json"], "usage_error"), (["--assert-json", "private-value"], "invalid_plan_option"),
+    (["--assert-json", "/full_name", "--assert-json", "/full_name"], "invalid_plan_option"),
+    (["--assert-json", "/unavailable-private-value"], "plan_json_missing"),
+  ] {
+    let command = ["run", "packages/prepare", "--target", target, "--", "examples/repository.har", prepared_path]
+    command.append(flags)
+    let rejected = @shell.Cmd("moon", command).output()
+    assert_eq(rejected.exit_code(), 2)
+    assert_true(rejected.stdout().contains(code))
+    assert_false(rejected.stdout().contains("private-value"))
+    assert_false(@fs.path_exists(prepared_path))
   }
   for command in [
     ["check", "--target", target, "--deny-warn"],
@@ -326,6 +351,10 @@ async fn main {
   replace_identity_json(entries[0], business)
   let json_review_path = "_build/echoreel-json-review.har"
   @fs.write_string_to_file(json_review_path, revised.stringify())
+  let contract_path = "_build/echoreel-field-contract-\{target}.json"
+  if @fs.path_exists(contract_path) { @fs.remove_file(contract_path) }
+  @shell.Cmd("moon", ["run", "packages/prepare", "--target", target, "--", "examples/repository.har", contract_path, "--assert-json", "/full_name"]).run()
+  @shell.Cmd("moon", ["run", "packages/check", "--target", target, "--", json_review_path, contract_path]).run()
   let unchanged = @shell.Cmd("moon", ["run", "packages/review", "--target", target, "--", "examples/repository.har", json_review_path, "--json-pointer", "/full_name", "--ignore-header", "Content-Length"]).output()
   unchanged.check()
   assert_eq(report_field(@json.parse(unchanged.stdout()), "body_mode"), Json("json_pointers"))
@@ -333,6 +362,11 @@ async fn main {
   fields.set("full_name", "changed-secret")
   replace_identity_json(entries[0], business)
   @fs.write_string_to_file(json_review_path, revised.stringify())
+  let contract_failure = @shell.Cmd("moon", ["run", "packages/check", "--target", target, "--", json_review_path, contract_path, "--report"]).output()
+  assert_eq(contract_failure.exit_code(), 1)
+  assert_eq(report_field(report_field(@json.parse(contract_failure.stdout()), "diagnostic"), "code"), Json("response_json_mismatch"))
+  assert_false(contract_failure.stdout().contains("changed-secret"))
+  @fs.remove_file(contract_path)
   let changed = @shell.Cmd("moon", ["run", "packages/review", "--target", target, "--", "examples/repository.har", json_review_path, "--json-pointer", "/full_name", "--ignore-header", "Content-Length"]).output()
   assert_eq(changed.exit_code(), 1)
   assert_false(changed.stdout().contains("secret"))

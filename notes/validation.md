@@ -20,9 +20,9 @@ type checking, on Linux, macOS and Windows.
 
 | Local runtime | Unit tests | End-to-end result |
 | --- | --- | --- |
-| Wasm | 85 passed | Identity/gzip HAR CLI, review, branch demo, SDK and rejection plans passed |
-| Wasm-GC | 80 passed | Identity/gzip HAR CLI, review, branch demo and rejection plans passed; five async tests skipped by Moon |
-| JavaScript / Node.js | 85 passed | Identity/gzip HAR CLI, review, branch demo, SDK and rejection plans passed |
+| Wasm | 93 passed | Identity/gzip HAR CLI, review, branch demo, SDK and rejection plans passed |
+| Wasm-GC | 88 passed | Identity/gzip HAR CLI, review, branch demo and rejection plans passed; five async tests skipped by Moon |
+| JavaScript / Node.js | 93 passed | Identity/gzip HAR CLI, review, branch demo, SDK and rejection plans passed |
 
 `moon fmt --check`, explicit formatting checks for both `.mbtx` tools, and
 `moon info --target all` also passed. Generated interfaces are committed.
@@ -155,3 +155,12 @@ assertions, inclusive output limits and preflight on empty inputs. Generated pla
 replay through the public parser and roll back after changed header contracts.
 Real identity/decoded captures exercise --assert-header with existing and absent
 names; invalid CLI options leave no output file. No external code or tests copied.
+
+JSON-contract generation tests cover escaped and root pointers, null, large IDs,
+numeric token spelling, arrays, strict UTF-8/duplicate-key/depth rejection,
+missing paths in later exchanges and invalid array indices. Inclusive pointer,
+value-size, envelope-depth and total output budgets are checked. Generated plans
+roundtrip through parse_plan, preserve unselected fields and recover after atomic
+failures. CLI E2E covers identity/decoded captures, empty root-pointer arguments,
+no-file-on-error, and a derived real capture with unselected then selected changes.
+The existing RFC 6901 implementation is reused; no external code/tests copied.

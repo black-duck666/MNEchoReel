@@ -15,6 +15,7 @@ test {
   assert_eq(cassette.source(), source)
   assert_true(cassette.compare(cassette).is_empty())
   assert_eq(cassette.request_plan(assert_headers=["Content-Type"]), "[]\n")
+  assert_eq(cassette.request_plan(assert_json=["/id"]), "[]\n")
   let branch = session.fork()
   let value = branch.transaction(s => {
     s.finish()

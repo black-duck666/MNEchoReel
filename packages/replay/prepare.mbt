@@ -1,10 +1,13 @@
 ///|
 /// Derive an editable request manifest. Includes HTTP values from the sanitized input.
 /// Does not serialize or modify the original HAR; decoded-body audits remain on Cassette.
+/// assert_headers snapshots selected ordered values or absence; assert_json requires
+/// each selected pointer in every strict JSON response. Empty selections preserve defaults.
 pub fn Cassette::request_plan(
   self : Cassette,
   assert_bodies~ : Bool = false,
   assert_headers~ : Array[String] = [],
+  assert_json~ : Array[String] = [],
   max_input_units~ : Int32 = 4194304,
 ) -> String raise ReplayError {
   if max_input_units < 1 {
@@ -27,6 +30,7 @@ pub fn Cassette::request_plan(
     }
     names.push(name)
   }
+  let pointers = plan_pointers(assert_json)
   let steps = self.exchanges.mapi((i, exchange) => {
     let request = exchange.request
     let text = @utf8.decode(request.body, ignore_bom=false) catch {
@@ -55,7 +59,7 @@ pub fn Cassette::request_plan(
       "body": text,
       "expect_status": exchange.response.status,
     }
-    if assert_bodies || !names.is_empty() {
+    if assert_bodies || !names.is_empty() || !pointers.is_empty() {
       guard step is Object(fields) else {
         abort("manifest construction invariant")
       }
@@ -74,6 +78,19 @@ pub fn Cassette::request_plan(
           assertion
         })
         fields.set("expect_headers", Json(assertions))
+      }
+      if !pointers.is_empty() {
+        fields.set(
+          "expect_json",
+          Json(
+            plan_json_assertions(
+              exchange.response.body,
+              assert_json,
+              pointers,
+              i,
+            ),
+          ),
+        )
       }
     }
     step

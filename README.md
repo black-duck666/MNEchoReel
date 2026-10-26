@@ -186,6 +186,23 @@ token 名称，重复名称（忽略大小写）、非法名称和超限均拒�
 可与 `--assert-bodies`、`--decoded` 组合；decoded 断言使用适配后真正回放的头，完整修改
 审计仍保留。摘要额外记录所选头名，不回显响应值；不指定时保持原生成结果和摘要格式。
 
+只锁定稳定业务字段，避免把易变时间戳也冻结在测试中：
+
+```sh
+moon run packages/prepare -- examples/repository.har fields.generated.json --assert-json /full_name --assert-json /owner/login
+moon run packages/check -- examples/repository.har fields.generated.json
+```
+
+库使用 `request_plan(assert_json=["/full_name", "/owner/login"])`。每个响应均需是严格
+UTF-8 JSON，所有所选路径都必须存在；`null` 是有效值，缺失、非法数组索引、重复 key、
+畸形正文或深度超过 64 会拒绝整个导出。`--assert-json` 可重复，接受空字符串选择根值；
+最多 256 个唯一 RFC 6901 字符串 pointer，每个最多 4096 UTF-16 units、64 个 token。
+数字保留原 token（包括大整数和小数写法），数组有序，对象成员顺序不影响后续断言。
+选定值最多 1,048,576 UTF-16 units、60 层容器，为计划外层保留 4 层；过大或过深时
+报 plan_json_limit，可选择更窄的路径。总导出上限仍适用，绝不静默省略断言。
+与头断言、完整正文断言及 decoded 组合时同时约束；只选 JSON 时未选业务字段可变化。
+摘要仅增加 pointer 配置，不输出实际值；生成文件包含所选值，需按原夹具方式管理。
+
 输出文件需尚不存在，父目录需已存在。prepare 保留方法、完整 URL、全部有序请求头、
 精确 UTF-8 请求正文，并为每步加入状态断言；--assert-bodies 额外加入 canonical base64
 响应正文断言。生成后可改成业务字段断言。文件包含原记录的 HTTP 数据，请只使用已净化

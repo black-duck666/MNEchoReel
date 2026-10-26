@@ -17,12 +17,13 @@ fn run(args : Array[String]) -> Unit raise {
     raise PrepareError({
       code: "usage_error",
       path: "$args",
-      message: "usage: moon run packages/prepare -- <recording.har> <NEW_PLAN.json> [--decoded] [--assert-bodies] [--assert-header NAME]",
+      message: "usage: moon run packages/prepare -- <recording.har> <NEW_PLAN.json> [--decoded] [--assert-bodies] [--assert-header NAME] [--assert-json POINTER]",
     })
   }
   let mut decoded = false
   let mut assert_bodies = false
   let assert_headers : Array[String] = []
+  let assert_json : Array[String] = []
   let flags = args.iter().drop(ARG_START + 2)
   for flag in flags {
     match flag {
@@ -38,11 +39,21 @@ fn run(args : Array[String]) -> Unit raise {
         }
         assert_headers.push(name)
       }
+      "--assert-json" => {
+        guard flags.next() is Some(pointer) else {
+          raise PrepareError({
+            code: "usage_error",
+            path: "$args",
+            message: "--assert-json requires a JSON pointer; an empty string selects the root",
+          })
+        }
+        assert_json.push(pointer)
+      }
       _ =>
         raise PrepareError({
           code: "usage_error",
           path: "$args",
-          message: "unknown or repeated option; expected --decoded, --assert-bodies or --assert-header NAME",
+          message: "unknown or repeated option; expected --decoded, --assert-bodies, --assert-header NAME or --assert-json POINTER",
         })
     }
   }
@@ -58,7 +69,11 @@ fn run(args : Array[String]) -> Unit raise {
     @fs.read_file_to_string(args[ARG_START]),
     body_profile=if decoded { DecodedContent } else { Identity },
   )
-  let plan = cassette.request_plan(assert_bodies~, assert_headers~)
+  let plan = cassette.request_plan(
+    assert_bodies~,
+    assert_headers~,
+    assert_json~,
+  )
   @fs.write_string_to_file(output, plan) catch {
     _ =>
       raise PrepareError({
@@ -76,6 +91,10 @@ fn run(args : Array[String]) -> Unit raise {
   if !assert_headers.is_empty() {
     guard summary is Object(fields) else { abort("summary invariant") }
     fields.set("assert_headers", Json(assert_headers))
+  }
+  if !assert_json.is_empty() {
+    guard summary is Object(fields) else { abort("summary invariant") }
+    fields.set("assert_json", Json(assert_json))
   }
   println(summary.stringify())
 }

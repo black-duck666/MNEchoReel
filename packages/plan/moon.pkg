@@ -8,4 +8,5 @@ import {
 
 import {
   "black-duck666/mnechoreel/replay",
+  "moonbitlang/core/encoding/utf8",
 } for "test"
