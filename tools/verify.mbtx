@@ -220,6 +220,26 @@ async fn main {
   guard report_field(results[1], "adaptations") is Array(changes) else { abort("decoded audit missing") }
   assert_eq(changes.length(), 2)
   let suite_xml = @fs.read_file_to_string(suite_junit)
+  let listed = @shell.Cmd("moon", ["run", "packages/suite", "--target", target, "--", "examples/regression.suite.json", "--list"]).output()
+  listed.check()
+  assert_eq(report_field(@json.parse(listed.stdout()), "selected"), Json(["identity", "decoded"]))
+  let mut partitioned = 0
+  let mut empty_shards = 0
+  for index in 0..<2 {
+    let path = "_build/echoreel-shard-\{target}-\{index}.xml"
+    if @fs.path_exists(path) { @fs.remove_file(path) }
+    let shard = @shell.Cmd("moon", ["run", "packages/suite", "--target", target, "--", "examples/regression.suite.json", "--case", "identity", "--shard", "\{index}/2", "--junit", path]).output()
+    shard.check()
+    let value = @json.parse(shard.stdout())
+    guard report_field(value, "cases") is Array(cases) else { abort("shard results missing") }
+    partitioned += cases.length()
+    if cases.is_empty() { empty_shards += 1; assert_true(@fs.read_file_to_string(path).contains("tests=\"0\"")) }
+    assert_eq(report_field(report_field(value, "selection"), "total"), Json(2))
+    assert_eq(report_field(report_field(value, "selection"), "selected"), Json(cases.map(case => report_field(case, "name"))))
+    @fs.write_string_to_file("_build/echoreel-shard-\{target}-\{index}.json", shard.stdout())
+  }
+  assert_eq(partitioned, 1)
+  assert_eq(empty_shards, 1)
   assert_true(suite_xml.contains("testsuites tests=\"4\" failures=\"0\" errors=\"0\" skipped=\"0\""))
   assert_true(suite_xml.contains("name=\"identity.step.0\""))
   assert_true(suite_xml.contains("name=\"decoded.step.0\""))
@@ -227,6 +247,13 @@ async fn main {
   assert_eq(guarded_output.exit_code(), 2)
   assert_eq(@fs.read_file_to_string(suite_junit), suite_xml)
   let suite_path = "_build/echoreel-suite-\{target}.json"
+  @fs.write_string_to_file(suite_path, "[{\"name\":\"identity\",\"har\":\"examples/repository.har\",\"requests\":\"examples/repository.requests.json\"},{\"name\":\"unavailable\",\"har\":\"_build/echoreel-unavailable.har\",\"requests\":\"_build/echoreel-unavailable.json\"}]")
+  let chosen = @shell.Cmd("moon", ["run", "packages/suite", "--target", target, "--", suite_path, "--case", "identity"]).output()
+  chosen.check()
+  assert_eq(report_field(report_field(@json.parse(chosen.stdout()), "selection"), "excluded"), Json(["unavailable"]))
+  let preview = @shell.Cmd("moon", ["run", "packages/suite", "--target", target, "--", suite_path, "--list"]).output()
+  preview.check()
+  assert_eq(report_field(@json.parse(preview.stdout()), "selected"), Json(["identity", "unavailable"]))
   let suite_plan = "_build/echoreel-suite-\{target}-requests.json"
   @fs.write_string_to_file(suite_plan, "[{\"method\":\"GET\",\"url\":\"https://wrong-secret.invalid/\"}]")
   let suite_value = @json.parse(@fs.read_file_to_string("examples/regression.suite.json"))
@@ -257,6 +284,17 @@ async fn main {
   }
   @fs.remove_file(suite_path)
   @fs.remove_file(suite_plan)
+  for (flags, code) in [
+    (["--case", "unknown"], "unknown_case"), (["--case", "identity", "--case", "identity"], "duplicate_selection"),
+    (["--shard", "2/2"], "invalid_shard"), (["--shard", "0/1025"], "invalid_shard"), (["--shard", "bad"], "usage_error"),
+    (["--case"], "usage_error"), (["--list", "--explain"], "usage_error"), (["--list", "--list"], "usage_error"),
+  ] {
+    let command = ["run", "packages/suite", "--target", target, "--", "examples/regression.suite.json"]
+    command.append(flags)
+    let rejected = @shell.Cmd("moon", command).output()
+    assert_eq(rejected.exit_code(), 2)
+    assert_eq(report_field(report_field(@json.parse(rejected.stdout()), "diagnostic"), "code"), Json(code))
+  }
   for flags in [["--explain", "--explain"], ["--junit"], ["--junit", "--explain"], ["--unknown"]] {
     let command = ["run", "packages/suite", "--target", target, "--", "examples/regression.suite.json"]
     command.append(flags)

@@ -45,7 +45,7 @@ jobs:
       - if: runner.os == 'Linux'
         run: sudo apt-get install --yes libxml2-utils
       - if: runner.os == 'Linux'
-        run: xmllint --noout _build/echoreel-${{ matrix.target }}.xml _build/echoreel-${{ matrix.target }}-failure.xml _build/echoreel-suite-${{ matrix.target }}.xml _build/echoreel-suite-${{ matrix.target }}-failure.xml
+        run: xmllint --noout _build/echoreel-${{ matrix.target }}.xml _build/echoreel-${{ matrix.target }}-failure.xml _build/echoreel-suite-${{ matrix.target }}.xml _build/echoreel-suite-${{ matrix.target }}-failure.xml _build/echoreel-shard-${{ matrix.target }}-0.xml _build/echoreel-shard-${{ matrix.target }}-1.xml
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
         with:
@@ -55,4 +55,6 @@ jobs:
             _build/echoreel-${{ matrix.target }}-failure.xml
             _build/echoreel-suite-${{ matrix.target }}.xml
             _build/echoreel-suite-${{ matrix.target }}-failure.xml
+            _build/echoreel-shard-${{ matrix.target }}-*.xml
+            _build/echoreel-shard-${{ matrix.target }}-*.json
           if-no-files-found: ignore

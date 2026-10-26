@@ -14,6 +14,8 @@ priv struct SuiteSpec {
 pub struct SuiteManifest {
   priv source : String
   priv specs : Array[SuiteSpec]
+  priv all_names : Array[String]
+  priv shard : (Int32, Int32)?
 }
 
 ///|
@@ -157,7 +159,7 @@ pub fn parse_suite_manifest(
     }
     SuiteSpec::{ index: i, name, har, requests, decoded, mode, headers, }
   })
-  { source, specs, }
+  { source, all_names: specs.map(spec => spec.name), specs, shard: None, }
 }
 
 ///|

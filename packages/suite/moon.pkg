@@ -2,6 +2,8 @@ import {
   "black-duck666/mnechoreel/replay",
   "black-duck666/mnechoreel/plan",
   "moonbitlang/core/env",
+  "moonbitlang/core/json",
+  "moonbitlang/core/string",
   "moonbitlang/x/fs",
   "moonbitlang/x/sys",
 }

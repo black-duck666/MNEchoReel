@@ -287,7 +287,7 @@ JUnit 中 suite、classname 与 testcase 名称均区分用例，避免多组 st
 库入口 `SuiteCase::new(name, cassette, plan, mode=Ordered)` 与 `verify_suite(cases)`，
 返回 SuiteReport，可查询 passed()/cases()，并生成稳定 JSON/JUnit。失败不会消费调用方
 的 cassette 或其他 session。库默认最多 1000 项和 1,000,000 次检查（每项完成检查也计入），
-可通过 max_cases/max_checks 调整；库可显式运行空集合，CLI 要求 1–1000 项。
+可通过 max_cases/max_checks 调整；库可显式运行空集合，CLI 原始清单要求 1–1000 项。
 CLI 清单最多 4,194,304 UTF-16 units，编译输入预算默认最多 67,108,864 units；
 每份输入仍受原有编译上限约束。这些是接受上限，不是进程内存配额。
 
@@ -300,6 +300,25 @@ read_text(path))` 通过调用方读取器生成 SuiteCase 数组，再交给 ve
 路径分别复用编译结果，匹配模式仍由各用例的独立 session 决定。不同路径别名不自动合并。
 预算按清单原文、每个不同 HAR 编译配置和每个请求计划路径的源文本各计算一次，可通过
 max_total_input_units 调整。下次 load 使用新快照，不保留全局缓存；CLI 使用相同 API。
+
+选择部分用例或在 CI 中分片：
+
+```sh
+moon run packages/suite -- examples/regression.suite.json --case identity --list
+moon run packages/suite -- examples/regression.suite.json --case identity --shard 0/2 --junit shard-0.xml
+```
+
+--case 可重复，要求名称存在且不重复，始终保留清单原序；--shard 使用从 0 开始的
+INDEX/COUNT，COUNT 为 1–1024。先按名称选择，再按名称哈希分片，新增其他用例不会
+改变既有分配；数量不保证均衡。算法固定为 ASCII 名称的 131 多项式哈希，先模
+2,147,483,647 再模片数，审计标识为 poly131-v1。
+
+--list 只预览完整选择范围，不加载 HAR/计划或执行回放，不能同时要求 --explain/--junit。
+执行选择后，JSON 新增 selection：原始总数、selected/excluded 名称、分片参数与算法。
+空分片显式成功且产生零用例报告；只有选择的文件会读入，排除项不计作已验证。
+默认不加选择参数时保留原报告格式。库使用 manifest.select(names=["identity"],
+shard_index=0, shard_count=2)，names() 表示当前子集，selection_json() 审计相对原始清单
+的最终范围。继续 select 只会缩小当前子集；source() 与原始诊断索引保留。
 
 ### 审查夹具更新
 

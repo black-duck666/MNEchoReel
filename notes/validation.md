@@ -20,9 +20,9 @@ type checking, on Linux, macOS and Windows.
 
 | Local runtime | Unit tests | End-to-end result |
 | --- | --- | --- |
-| Wasm | 77 passed | Identity/gzip HAR CLI, review, branch demo, SDK and rejection plans passed |
-| Wasm-GC | 72 passed | Identity/gzip HAR CLI, review, branch demo and rejection plans passed; five async tests skipped by Moon |
-| JavaScript / Node.js | 77 passed | Identity/gzip HAR CLI, review, branch demo, SDK and rejection plans passed |
+| Wasm | 81 passed | Identity/gzip HAR CLI, review, branch demo, SDK and rejection plans passed |
+| Wasm-GC | 76 passed | Identity/gzip HAR CLI, review, branch demo and rejection plans passed; five async tests skipped by Moon |
+| JavaScript / Node.js | 81 passed | Identity/gzip HAR CLI, review, branch demo, SDK and rejection plans passed |
 
 `moon fmt --check`, explicit formatting checks for both `.mbtx` tools, and
 `moon info --target all` also passed. Generated interfaces are committed.
@@ -140,3 +140,11 @@ path, fresh later loads, original reader-error propagation, source/name isolatio
 and preflight-before-I/O. Inclusive input budgets charge shared units once and
 distinct HAR variants separately. A selected-header regression proves shared
 snapshots do not merge different matchers. The CLI delegates to the same API.
+
+Selection tests exhaust disjoint/exhaustive partition properties across shard
+counts 1, 2, 3, 7 and 1024, preserve order/source/indexes, check stable assignment
+after additions and isolate mutable audit output. Empty shards perform no reads;
+excluded missing files do not affect selected cases. CLI tests cover preview,
+unknown/duplicate names, malformed shards and two real-fixture shard reports.
+Linux CI validates both populated and empty shard XML, and uploads JSON scope
+sidecars alongside them; default suite output remains covered by existing E2E.

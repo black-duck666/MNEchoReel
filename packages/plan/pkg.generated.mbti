@@ -54,6 +54,8 @@ pub struct SuiteManifest {
 }
 pub fn SuiteManifest::load(Self, (String) -> String raise, max_total_input_units? : Int32) -> Array[SuiteCase] raise
 pub fn SuiteManifest::names(Self) -> Array[String]
+pub fn SuiteManifest::select(Self, names? : Array[String], shard_index? : Int32, shard_count? : Int32) -> Self raise @replay.ReplayError
+pub fn SuiteManifest::selection_json(Self) -> Json
 pub fn SuiteManifest::source(Self) -> String
 
 pub struct SuiteReport {
