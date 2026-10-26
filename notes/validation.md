@@ -20,9 +20,9 @@ type checking, on Linux, macOS and Windows.
 
 | Local runtime | Unit tests | End-to-end result |
 | --- | --- | --- |
-| Wasm | 98 passed | Identity/gzip HAR CLI, review, branch demo, buffered/streamed SDK and rejection plans passed |
-| Wasm-GC | 92 passed | Identity/gzip HAR CLI, review, branch demo and rejection plans passed; six async tests skipped by Moon |
-| JavaScript / Node.js | 98 passed | Identity/gzip HAR CLI, review, branch demo, buffered/streamed SDK and rejection plans passed |
+| Wasm | 104 passed | Identity/gzip HAR CLI, review, branch demo, buffered/streamed SDK and rejection plans passed |
+| Wasm-GC | 93 passed | Identity/gzip HAR CLI, review, branch demo and rejection plans passed; eleven async tests skipped by Moon |
+| JavaScript / Node.js | 104 passed | Identity/gzip HAR CLI, review, branch demo, buffered/streamed SDK and rejection plans passed |
 
 `moon fmt --check`, explicit formatting checks for both `.mbtx` tools, and
 `moon info --target all` also passed. Generated interfaces are committed.
@@ -171,3 +171,12 @@ Public SDK tests cover original versus configured adapters, unchanged buffered
 responses, duplicate headers and streams surviving session reset. The real-capture
 stream_demo runs on Wasm, JavaScript and native CI. No timing or wire-frame
 simulation is claimed; no upstream fake-stream implementation/tests were copied.
+
+Request-stream tests cover UTF-8 byte splits, ordered selected request headers, both response kinds, known/unknown
+lengths, exact byte/chunk budgets, empty and endlessly empty chunks, declared
+length violations, original reader errors, one-shot reuse, body mismatch recovery
+and structured cancellation cleanup. Defaults and preflight ownership remain
+covered. upload_demo runs on the unchanged real GET and on a synthetic POST
+derived from its JSON bytes; no live upload capture is claimed. Wasm-GC skips the
+five new async tests, which run on Wasm/JS and native CI. StreamBody ownership and
+length validation reuse gaato/http 0.4.1 (Apache-2.0); no upstream code/tests copied.

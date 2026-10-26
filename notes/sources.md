@@ -49,3 +49,8 @@ Mooncakes 文档索引可能落后；实现固定版本并以实际下载接口�
 - 真实 API 数据、获取命令、许可不确定性与包裹 HAR 的来源见
   [examples/provenance.md](../examples/provenance.md)。单元测试边界数据和项目实现
   在本仓库新编写，按根目录 MIT 许可发布。
+
+请求流适配通过公开的 gaato/http 0.4.1 StreamBody::take/length 使用其一次性读取与长度
+校验（Apache-2.0），没有复制 FakeTransport 的 drain 或 stream 实现。响应分块和请求
+预算逻辑、测试及演示均为本项目编写；upload_demo 的派生 POST 使用既有真实响应数据，
+来源与许可限制仍见 examples/provenance.md，不声称该合成请求是实际网络录制。

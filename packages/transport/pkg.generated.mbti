@@ -17,6 +17,7 @@ pub struct ReplayTransport {
 pub fn ReplayTransport::new(@replay.Session) -> Self
 pub async fn ReplayTransport::send(Self, @http.Request) -> @http.Response raise @http.HttpError
 pub async fn ReplayTransport::send_stream(Self, @http.Request) -> (@http.ResponseHead, &@http.BodyStream) raise @http.HttpError
+pub fn ReplayTransport::with_request_streams(Self, max_bytes? : Int32, max_chunks? : Int32) -> Self raise @replay.ReplayError
 pub fn ReplayTransport::with_response_chunks(Self, Int32) -> Self raise @replay.ReplayError
 pub impl @http.Transport for ReplayTransport
 

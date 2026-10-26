@@ -3,11 +3,12 @@
 pub struct ReplayTransport {
   priv session : @replay.Session
   priv response_chunk_bytes : Int32?
+  priv request_stream_limits : (Int32, Int32)?
 }
 
 ///|
 pub fn ReplayTransport::new(session : @replay.Session) -> ReplayTransport {
-  { session, response_chunk_bytes: None, }
+  { session, response_chunk_bytes: None, request_stream_limits: None, }
 }
 
 ///|
@@ -57,12 +58,12 @@ fn ReplayTransport::respond(
 
 ///|
 pub impl @http.Transport for ReplayTransport with fn send(self, request) {
-  self.respond(request)
+  self.respond(self.buffer_request(request))
 }
 
 ///|
 pub impl @http.Transport for ReplayTransport with fn send_stream(self, request) {
-  let response = self.respond(request)
+  let response = self.respond(self.buffer_request(request))
   let stream : &@http.BodyStream = MemoryBody::{
     body: response.body,
     offset: 0,

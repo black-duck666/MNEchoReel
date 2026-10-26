@@ -106,6 +106,18 @@ async fn main {
   if target != "wasm-gc" {
     @shell.Cmd("moon", ["run", "packages/demo", "--target", target, "--deny-warn", "--", "examples/repository.har"], stdout=Inherit, stderr=Inherit).run()
     @shell.Cmd("moon", ["run", "packages/stream_demo", "--target", target, "--deny-warn", "--", "examples/repository.har"], stdout=Inherit, stderr=Inherit).run()
+    @shell.Cmd("moon", ["run", "packages/upload_demo", "--target", target, "--deny-warn", "--", "examples/repository.har"], stdout=Inherit, stderr=Inherit).run()
+    let upload_root = @json.parse(@fs.read_file_to_string("examples/repository.har"))
+    guard upload_root is { "log": { "entries": Array(entries), .. }, .. } else { abort("upload fixture entries missing") }
+    guard entries[0] is { "request": Object(request), "response": { "content": { "text": String(body), .. }, .. }, .. } else { abort("upload fixture body missing") }
+    request.set("method", "POST")
+    request.set("url", "https://example.invalid/upload")
+    request.set("postData", { "mimeType": "application/json; charset=utf-8", "text": body })
+    request.set("bodySize", Json(@utf8.encode(body).length()))
+    let upload_path = "_build/echoreel-derived-upload-\{target}.har"
+    @fs.write_string_to_file(upload_path, upload_root.stringify())
+    @shell.Cmd("moon", ["run", "packages/upload_demo", "--target", target, "--deny-warn", "--", upload_path], stdout=Inherit, stderr=Inherit).run()
+    @fs.remove_file(upload_path)
   }
   let temporary = "_build/echoreel-negative-manifest.json"
   for (plan, expected) in [
