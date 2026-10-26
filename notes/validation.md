@@ -20,9 +20,9 @@ type checking, on Linux, macOS and Windows.
 
 | Local runtime | Unit tests | End-to-end result |
 | --- | --- | --- |
-| Wasm | 93 passed | Identity/gzip HAR CLI, review, branch demo, SDK and rejection plans passed |
-| Wasm-GC | 88 passed | Identity/gzip HAR CLI, review, branch demo and rejection plans passed; five async tests skipped by Moon |
-| JavaScript / Node.js | 93 passed | Identity/gzip HAR CLI, review, branch demo, SDK and rejection plans passed |
+| Wasm | 98 passed | Identity/gzip HAR CLI, review, branch demo, buffered/streamed SDK and rejection plans passed |
+| Wasm-GC | 92 passed | Identity/gzip HAR CLI, review, branch demo and rejection plans passed; six async tests skipped by Moon |
+| JavaScript / Node.js | 98 passed | Identity/gzip HAR CLI, review, branch demo, buffered/streamed SDK and rejection plans passed |
 
 `moon fmt --check`, explicit formatting checks for both `.mbtx` tools, and
 `moon info --target all` also passed. Generated interfaces are committed.
@@ -164,3 +164,10 @@ roundtrip through parse_plan, preserve unselected fields and recover after atomi
 failures. CLI E2E covers identity/decoded captures, empty root-pointer arguments,
 no-file-on-error, and a derived real capture with unselected then selected changes.
 The existing RFC 6901 implementation is reused; no external code/tests copied.
+
+Response chunk tests roundtrip every byte across lengths 0–256 and chunk sizes
+1, 2, 3, 7, 256 and Int32 max, including terminal EOF and early/repeated close.
+Public SDK tests cover original versus configured adapters, unchanged buffered
+responses, duplicate headers and streams surviving session reset. The real-capture
+stream_demo runs on Wasm, JavaScript and native CI. No timing or wire-frame
+simulation is claimed; no upstream fake-stream implementation/tests were copied.

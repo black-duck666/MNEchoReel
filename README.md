@@ -46,7 +46,7 @@ session.finish()
 SDK 接入只需将 `@transport.ReplayTransport::new(session)` 作为
 `&@http.Transport` 传给接受 [gaato/http](https://mooncakes.io/docs/gaato/http)
 的客户端；[demo](packages/demo/main.mbt) 执行业务函数并断言真实返回字段。
-响应头保留重复值与顺序。`send_stream` 返回有限内存正文，读取一次后结束；
+响应头保留重复值与顺序。`send_stream` 默认返回有限内存正文，读取一次后结束；
 关闭后继续读取返回 `None`。它不模拟网络分块、延时、背压或取消。
 
 `Cassette` 可复用，`session()` 的消费状态相互独立。默认 `Ordered` 按录制顺序
@@ -162,6 +162,21 @@ CLI 输出每项修改的 JSON；`cassette.adaptations()` 和 `adaptation_report
 decoded content.size 与可用的 compression 元数据。拒绝 Transfer-Encoding、
 HEAD/204/304 的编码适配、范围/摘要/签名元数据、缺失正文和未知编码。
 它是有限 SDK 测试的头适配，不承诺还原 wire capture 或支持签名 HTTP 消息。
+
+## 验证 SDK 的跨块读取
+
+`ReplayTransport::new(session).with_response_chunks(7)` 返回共享同一 session 的新适配器，
+将 `send_stream` 的正文划分为最多 7 字节的连续块；`send` 仍返回完整正文。块大小必须
+为正，非法配置返回 invalid_transport_option，不改变消费状态；原适配器保留原配置。
+
+```sh
+moon run packages/stream_demo -- examples/repository.har
+```
+
+示例从真实 HAR 分块读取，重组并解析 GitHub JSON，最后检查全部消费。分块不改动
+HTTP 头或正文字节，UTF-8 字符可能跨块；EOF 和 close 均终止该流，旧流独立于后续
+session reset。请求在取得响应时已消费，提前关闭响应流不会撤销消费。
+此选项用于有限录制的客户端读取测试，不模拟传输编码、时序、背压或无限事件流。
 
 ## 请求清单与命令行
 

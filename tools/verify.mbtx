@@ -105,6 +105,7 @@ async fn main {
   }
   if target != "wasm-gc" {
     @shell.Cmd("moon", ["run", "packages/demo", "--target", target, "--deny-warn", "--", "examples/repository.har"], stdout=Inherit, stderr=Inherit).run()
+    @shell.Cmd("moon", ["run", "packages/stream_demo", "--target", target, "--deny-warn", "--", "examples/repository.har"], stdout=Inherit, stderr=Inherit).run()
   }
   let temporary = "_build/echoreel-negative-manifest.json"
   for (plan, expected) in [
