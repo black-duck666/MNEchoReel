@@ -180,3 +180,10 @@ covered. upload_demo runs on the unchanged real GET and on a synthetic POST
 derived from its JSON bytes; no live upload capture is claimed. Wasm-GC skips the
 five new async tests, which run on Wasm/JS and native CI. StreamBody ownership and
 length validation reuse gaato/http 0.4.1 (Apache-2.0); no upstream code/tests copied.
+
+A separate private consumer module now resolves EchoReel through moon.work and
+imports only its public replay/plan/transport packages. Its executable verifies
+the real capture, exported contracts and suite output on all four targets. The
+SDK executable uses the public Transport trait, request budgets and response
+chunks on Wasm/JS and native. CI checks its formatting/interfaces separately and
+executes it in every runtime job; root unit-test counts above are unchanged.

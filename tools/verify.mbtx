@@ -396,5 +396,10 @@ async fn main {
   assert_true(review.exit_code() != 0)
   assert_true(review.stdout().contains("\"kind\":\"status\""))
   @fs.remove_file(revised_path)
-  println("verified \{target}: unit tests, real capture, SDK where supported, and CLI rejection paths")
+  @shell.Cmd("moon", ["-C", "examples/consumer", "check", "--target", target, "--deny-warn"], stdout=Inherit, stderr=Inherit).run()
+  @shell.Cmd("moon", ["-C", "examples/consumer", "run", ".", "--target", target, "--deny-warn", "--", "../repository.har", "../repository.requests.json"], stdout=Inherit, stderr=Inherit).run()
+  if target != "wasm-gc" {
+    @shell.Cmd("moon", ["-C", "examples/consumer", "run", "sdk", "--target", target, "--deny-warn", "--", "../repository.har"], stdout=Inherit, stderr=Inherit).run()
+  }
+  println("verified \{target}: unit tests, real capture, SDK where supported, CLI rejections and external consumer")
 }

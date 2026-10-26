@@ -1,5 +1,6 @@
 _build/
 /target/
 /.mooncakes/
+examples/consumer/.mooncakes/
 /.DS_Store
 *.exe

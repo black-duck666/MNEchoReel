@@ -1,0 +1,16 @@
+import {
+  "black-duck666/mnechoreel/replay",
+  "black-duck666/mnechoreel/transport",
+  "gaato/http",
+  "moonbitlang/async",
+  "moonbitlang/core/env",
+  "moonbitlang/core/encoding/utf8",
+  "moonbitlang/core/json",
+  "moonbitlang/x/fs",
+}
+
+pkgtype(kind: "executable")
+
+options(
+  supported_targets: "wasm+js+native",
+)

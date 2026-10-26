@@ -14,8 +14,10 @@ jobs:
       - run: moon version --all
       - run: moon update
       - run: moon fmt --check
+      - run: moon -C examples/consumer fmt --check
       - run: moon fmt --check tools/import_capture.mbtx tools/verify.mbtx
       - run: moon info --target all
+      - run: moon -C examples/consumer info --target all
       - run: git diff --exit-code
   runtime:
     strategy:

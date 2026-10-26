@@ -33,6 +33,18 @@ offline SDK result: moonbitlang/core; all interactions verified
 `black-duck666/mnechoreel/replay` 与 `black-duck666/mnechoreel/transport`。
 由调用方读取 HAR 字符串，核心库不依赖文件系统或网络。
 
+已提供[独立消费模块](examples/consumer/README.md)，使用当前工具链的 `moon.work`
+从源码解析真实模块依赖；无需先发布本项目，也无需把代码复制到应用包中：
+
+```sh
+moon -C examples/consumer run . --target wasm -- ../repository.har ../repository.requests.json
+moon -C examples/consumer run sdk --target wasm -- ../repository.har
+```
+
+在自己的 workspace 中，将应用和本仓库加入 members，在应用 moon.mod 声明
+`black-duck666/mnechoreel@0.1.0`，再按需导入 replay、plan、transport。工作区会使用
+本地成员源码；版本号不表示已发布到 Mooncakes。完整配置见消费模块的 moon.mod/moon.pkg/moon.work。
+
 ```moonbit
 let cassette = @replay.compile_har(har_text, match_headers=["Accept"])
 let session = cassette.session()
